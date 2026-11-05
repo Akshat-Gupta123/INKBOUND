@@ -1,32 +1,199 @@
 export type Tool = 'stroke' | 'arrow' | 'loop';
-export type Rect = {x:number;y:number;w:number;h:number};
-export type Edit = Rect & {id:string;tool:Tool;dx?:number;dy?:number;duration?:number;plate?:boolean};
-export type Level = {name:string;chapter:number;subtitle:string;note:string;dialogue:string;goal:string;width:number;platforms:Rect[];edits:Edit[];hazards:Rect[];fragments:{x:number;y:number}[];checkpoint:{x:number;y:number};exit:{x:number;y:number};gate?:Rect;plate?:Rect;secret:string};
-const floor=(x:number,w:number,y=610):Rect=>({x,y,w,h:65});
-const ledge=(x:number,y:number,w=150):Rect=>({x,y,w,h:24});
-export const chapters=[{name:'The First Page',color:0x668c70,word:'Where every story starts with a mistake.'},{name:'Moving Margins',color:0xb27d47,word:'A little direction goes a long way.'},{name:'Clockwork Notebook',color:0x6c83a0,word:'Some things are worth doing again.'},{name:'The Unwritten World',color:0x9c7192,word:'There is room for all of us on this page.'}];
-export const levels:Level[]=[
-{name:'First Steps',chapter:0,subtitle:'A small doodle. A very big page.',note:'A / D to wander · Space to leap. Hold a little longer to jump higher.',dialogue:'Scribble: Oh! You have legs. Excellent. Most of my friends are punctuation.',goal:'Find the folded doorway',width:2100,platforms:[floor(0,550),floor(690,500),floor(1330,770),ledge(290,480),ledge(850,455),ledge(1510,465)],edits:[],hazards:[],fragments:[{x:350,y:430},{x:920,y:400},{x:1580,y:410}],checkpoint:{x:1080,y:570},exit:{x:1990,y:540},secret:'Margin: I used to be a shopping list. Now I am an adventure.'},
-{name:'Missing Pieces',chapter:0,subtitle:'The space between things.',note:'E opens Sketch Mode. Choose Stroke [1], then click a dotted bridge. Click again or trace to finish.',dialogue:'Scribble: A blank space is just a bridge that has not made up its mind.',goal:'Draw a way across',width:2300,platforms:[floor(0,440),floor(860,430),floor(1710,590),ledge(1020,450)],edits:[{id:'bridge-a',tool:'stroke',x:440,y:610,w:420,h:24},{id:'bridge-b',tool:'stroke',x:1290,y:610,w:420,h:24}],hazards:[],fragments:[{x:650,y:550},{x:1090,y:395},{x:1510,y:550}],checkpoint:{x:1120,y:570},exit:{x:2190,y:540},secret:'Scribble: These bridges are held together by optimism. And a small amount of graphite.'},
-{name:'The Broken Staircase',chapter:0,subtitle:'Nothing unfinished stays that way.',note:'Restore the stairs. The gold seal opens only when every drawing on this page is complete.',dialogue:'Margin: The Eraser says crooked lines do not belong. I am mostly crooked lines.',goal:'Restore all three steps',width:2200,platforms:[floor(0,630),floor(1020,1180),ledge(650,495),ledge(1090,370),ledge(1460,285,280),ledge(1810,400,280)],edits:[{id:'step-a',tool:'stroke',x:460,y:505,w:150,h:24},{id:'step-b',tool:'stroke',x:850,y:410,w:170,h:24},{id:'step-c',tool:'stroke',x:1280,y:310,w:160,h:24}],hazards:[],fragments:[{x:710,y:445},{x:1180,y:320},{x:1580,y:230}],checkpoint:{x:1150,y:335},exit:{x:2040,y:330},gate:ledge(1980,330,25),secret:'A pencilled note: A staircase does not need to be straight. It needs to go somewhere.'},
-{name:'The Pencil Factory',chapter:1,subtitle:'Please mind the moving margins.',note:'Arrow [2]: select the striped lift, then drag a direction. A simple click sends it toward its marked destination.',dialogue:'Scribble: They made me here. I was the only pencil who asked why.',goal:'Send the lifts upward',width:2400,platforms:[floor(0,530),floor(800,580),floor(1740,660),ledge(800,390,350),ledge(1740,300,340)],edits:[{id:'lift-a',tool:'arrow',x:560,y:580,w:190,h:25,dy:-200},{id:'lift-b',tool:'arrow',x:1420,y:580,w:230,h:25,dy:-300}],hazards:[{x:1160,y:582,w:200,h:28}],fragments:[{x:650,y:320},{x:990,y:335},{x:1850,y:245}],checkpoint:{x:1030,y:355},exit:{x:2270,y:540},secret:'Factory notice: Bent pencils still write. Management has been informed.'},
-{name:'A Little Push',chapter:1,subtitle:'A weighty matter.',note:'Send the little crate onto its brass pressure plate. The exit stays closed until the plate is held.',dialogue:'Margin: I would help push, but I am technically a folded triangle.',goal:'Move the crate onto the plate',width:2200,platforms:[floor(0,1050),floor(1190,1010),ledge(480,450),ledge(1360,455)],edits:[{id:'crate',tool:'arrow',x:640,y:564,w:46,h:46,dx:260,plate:true},{id:'bridge',tool:'stroke',x:1050,y:610,w:140,h:24}],hazards:[],plate:{x:890,y:604,w:85,h:6},gate:{x:1960,y:460,w:28,h:150},fragments:[{x:540,y:395},{x:1120,y:550},{x:1440,y:400}],checkpoint:{x:1290,y:570},exit:{x:2070,y:540},secret:'The crate reads: FRAGILE. Contains very important nothing.'},
-{name:'Across the Margin',chapter:1,subtitle:'There is more than one way to go.',note:'The upper route hides a fragment. R resets the puzzle and refills your ink at the last checkpoint.',dialogue:'Scribble: The edge of the page? Merely a suggestion.',goal:'Cross the torn paper canyon',width:2800,platforms:[floor(0,470),floor(1030,420),floor(2060,740),ledge(920,470,100),ledge(1030,390,120),ledge(720,330),ledge(1190,330),ledge(1530,420,120),ledge(1730,300)],edits:[{id:'ferry',tool:'arrow',x:490,y:570,w:230,h:25,dx:330},{id:'span',tool:'stroke',x:1450,y:540,w:310,h:24},{id:'rise',tool:'arrow',x:1800,y:570,w:200,h:25,dy:-180}],hazards:[],fragments:[{x:790,y:275},{x:1270,y:275},{x:1810,y:245}],checkpoint:{x:1240,y:570},exit:{x:2670,y:540},secret:'Margin: I hid a biscuit here in Chapter One. It has become archaeology.'},
-{name:'The Clockwork Page',chapter:2,subtitle:'Again, with feeling.',note:'Loop [3]: circle or click the round-marked ferry to make it shuttle. Ride it across, and hop off at the far side.',dialogue:'Scribble: Time is a circle. Lunch, regrettably, is not.',goal:'Wake the clockwork ferries',width:2500,platforms:[floor(0,460),floor(1090,420),floor(2140,360),ledge(1210,430)],edits:[{id:'clock-a',tool:'loop',x:490,y:565,w:210,h:25,dx:400},{id:'clock-b',tool:'loop',x:1550,y:565,w:210,h:25,dx:380}],hazards:[],fragments:[{x:810,y:500},{x:1280,y:375},{x:1880,y:500}],checkpoint:{x:1300,y:570},exit:{x:2390,y:540},secret:'A tiny clock has a sign: I am not late. I am building suspense.'},
-{name:'A Matter of Timing',chapter:2,subtitle:'Good things come to those who jump.',note:'Moving platforms carry Pip. Wait for a safe landing, then jump. Sketch Mode slows the world while you think.',dialogue:'Margin: My watch only says “now”. It is surprisingly accurate.',goal:'Climb the repeating machinery',width:2600,platforms:[floor(0,500),floor(1000,430),floor(2100,500),ledge(1050,360,300),ledge(1860,280)],edits:[{id:'elevator',tool:'loop',x:590,y:560,w:240,h:25,dy:-250},{id:'pendulum',tool:'loop',x:1460,y:350,w:220,h:25,dx:240},{id:'step',tool:'stroke',x:1710,y:350,w:160,h:24}],hazards:[{x:1080,y:584,w:200,h:26}],fragments:[{x:710,y:255},{x:1190,y:305},{x:1930,y:225}],checkpoint:{x:1170,y:325},exit:{x:2470,y:540},secret:'Scribble: The ticking is in 7/8. That is why the machinery seems nervous.'},
-{name:'The Inkstorm',chapter:2,subtitle:'Even a storm can be drawn through.',note:'Blue dotted platforms fade after 12 seconds. Reset for fresh ink, or redraw them after they fade.',dialogue:'The Eraser: If I remove every mistake, nothing will hurt again.',goal:'Outrun the fading ink',width:2800,platforms:[floor(0,430),floor(1130,470),floor(2350,450),ledge(1160,510,100),ledge(1300,430)],edits:[{id:'rain-a',tool:'stroke',x:450,y:560,w:280,h:24,duration:12000},{id:'rain-b',tool:'stroke',x:790,y:500,w:280,h:24,duration:12000},{id:'storm-ferry',tool:'loop',x:1650,y:550,w:230,h:25,dx:400},{id:'rain-c',tool:'stroke',x:2110,y:530,w:190,h:24,duration:12000}],hazards:[{x:1440,y:584,w:140,h:26}],fragments:[{x:580,y:505},{x:1370,y:375},{x:2200,y:475}],checkpoint:{x:1250,y:570},exit:{x:2670,y:540},secret:'A rain-soaked note: A smudge is proof that someone was here.'},
-{name:'Broken Rules',chapter:3,subtitle:'Three tools. One impossible page.',note:'Restore the bridge, direct the lift, and loop the ferry. Every drawing matters to the final seal.',dialogue:'Scribble: We are not fixing the book. We are helping it become itself.',goal:'Combine all three tools',width:2900,platforms:[floor(0,460),floor(890,420),floor(1880,1020),ledge(1390,350,300),ledge(2240,430)],edits:[{id:'memory',tool:'stroke',x:460,y:610,w:430,h:24},{id:'hope',tool:'arrow',x:1350,y:570,w:220,h:25,dy:-220},{id:'courage',tool:'loop',x:1700,y:350,w:220,h:25,dx:350}],hazards:[{x:2010,y:584,w:180,h:26}],fragments:[{x:680,y:550},{x:1490,y:295},{x:2310,y:375}],checkpoint:{x:1100,y:570},exit:{x:2780,y:540},gate:{x:2660,y:460,w:25,h:150},secret:'Margin: The rules were written in pencil. That was probably a clue.'},
-{name:"The Eraser’s Workshop",chapter:3,subtitle:'A place for things that did not fit.',note:'Explore above the workshop, then bring the crate to its plate. The quiet upper room remembers the first drawing.',dialogue:'The Eraser: I was made to help. Then they only called me when something was wrong.',goal:'Open the workshop archive',width:3200,platforms:[floor(0,850),floor(1030,1000),floor(2260,940),ledge(300,510,130),ledge(500,435),ledge(710,370,110),ledge(850,300,280),ledge(1320,250,300),ledge(1750,350,260),ledge(2470,430)],edits:[{id:'archive',tool:'stroke',x:850,y:610,w:180,h:24},{id:'worklift',tool:'arrow',x:1120,y:560,w:180,h:25,dy:-260},{id:'scrap',tool:'arrow',x:1630,y:564,w:46,h:46,dx:280,plate:true},{id:'return',tool:'loop',x:2040,y:560,w:190,h:25,dx:180}],hazards:[],plate:{x:1900,y:604,w:85,h:6},gate:{x:2900,y:460,w:25,h:150},fragments:[{x:930,y:245},{x:1440,y:195},{x:2560,y:375}],checkpoint:{x:1500,y:570},exit:{x:3080,y:540},secret:'The first drawing: a small, wobbly sun. Underneath: “For you, Eraser. Thank you for helping.”'},
-{name:'The Last Drawing',chapter:3,subtitle:'Leave a little room for imperfection.',note:'Restore the three memories to reach the Eraser. The last drawing does not need to be perfect. It needs to be yours.',dialogue:'Pip: You do not have to erase the hurt. You can stay and draw with us.',goal:'Restore the memories. Reach the Eraser.',width:3300,platforms:[floor(0,500),floor(920,400),floor(1890,390),floor(2730,570),ledge(1960,350),ledge(2240,380,130),ledge(2400,300)],edits:[{id:'first-line',tool:'stroke',x:500,y:580,w:420,h:24},{id:'second-chance',tool:'arrow',x:1390,y:570,w:230,h:25,dy:-230},{id:'always-again',tool:'loop',x:1650,y:340,w:210,h:25,dx:310},{id:'last-line',tool:'stroke',x:2290,y:460,w:390,h:24}],hazards:[{x:2100,y:584,w:150,h:26}],fragments:[{x:710,y:525},{x:2020,y:295},{x:2470,y:245}],checkpoint:{x:2010,y:315},exit:{x:3150,y:540},gate:{x:2940,y:460,w:25,h:150},secret:'A note in every handwriting: We were never finished. We were just getting started.'}
+export type Rect = { x: number; y: number; w: number; h: number };
+export type Edit = Rect & {
+  id: string; tool: Tool; dx?: number; dy?: number; duration?: number; plate?: boolean;
+};
+/** A lethal ink saw travelling from (x,y) to (x+dx,y+dy) and back. */
+export type Sweeper = {
+  x: number; y: number; r: number; dx?: number; dy?: number;
+  /** Full out-and-back travel time, in milliseconds. */
+  period: number;
+  /** Initial cycle position in the range 0..1. */
+  phase?: number;
+};
+export type Level = {
+  name: string; chapter: number; subtitle: string; note: string; dialogue: string;
+  goal: string; width: number; par: number;
+  platforms: Rect[]; edits: Edit[]; hazards: Rect[]; sweepers: Sweeper[];
+  fragments: { x: number; y: number }[];
+  checkpoint: { x: number; y: number }; exit: { x: number; y: number };
+  gate?: Rect; plate?: Rect; secret: string;
+};
+const floor = (x: number, w: number, y = 610): Rect => ({ x, y, w, h: 65 });
+const ledge = (x: number, y: number, w = 150): Rect => ({ x, y, w, h: 22 });
+const teeth = (x: number, w: number, y = 582): Rect => ({ x, y, w, h: 28 });
+const stroke = (id: string, x: number, y: number, w: number, duration?: number): Edit =>
+  ({ id, tool: 'stroke', x, y, w, h: 22, duration });
+const rail = (id: string, tool: 'arrow' | 'loop', x: number, y: number, w: number, dx = 0, dy = 0): Edit =>
+  ({ id, tool, x, y, w, h: 24, dx, dy });
+const saw = (x: number, y: number, dx: number, dy: number, period: number, r = 25, phase = 0): Sweeper =>
+  ({ x, y, dx, dy, period, r, phase });
+
+export const chapters = [
+  { name: 'Break the Line', color: 0xffd34e, word: 'Find your speed. Keep it.' },
+  { name: 'Factory Speed', color: 0xff6757, word: 'The machines do not wait.' },
+  { name: 'Clockwork Riot', color: 0x59d9ff, word: 'Read the rhythm. Break through.' },
+  { name: 'Erase the Rules', color: 0xc68cff, word: 'No safe route. Make one.' },
 ];
-export function availableTools(level:number):Tool[]{return level<1?[]:level<3?['stroke']:level<6?['stroke','arrow']:['stroke','arrow','loop'];}
-export function gestureValid(tool:Tool,points:{x:number;y:number}[]):boolean {
- if(points.length<4)return true;
- const a=points[0],b=points[points.length-1];
- const length=points.slice(1).reduce((n,p,i)=>n+Math.hypot(p.x-points[i].x,p.y-points[i].y),0);
- if(length<18)return true;
- if(tool==='stroke')return length>25;
- if(tool==='arrow')return Math.hypot(b.x-a.x,b.y-a.y)>25;
- const xs=points.map(p=>p.x),ys=points.map(p=>p.y);
- return Math.max(...xs)-Math.min(...xs)>25&&Math.max(...ys)-Math.min(...ys)>25&&Math.hypot(b.x-a.x,b.y-a.y)<length*.65;
+
+export const levels: Level[] = [
+  {
+    name: 'First Steps', chapter: 0, subtitle: 'No warm-up lap.', par: 20,
+    note: 'A/D move · Space jump · Shift dash · Drag to sketch while moving. Red ink kills. Dash through saws.',
+    dialogue: 'MOVE. DRAW. DO NOT STOP.', goal: 'Clear the page. Beat 20 seconds.', width: 2500,
+    platforms: [floor(0, 480), floor(830, 540), floor(1720, 780), ledge(330, 480, 100), ledge(710, 400, 120), ledge(1040, 440, 110), ledge(1450, 460, 130), ledge(1950, 430, 130)],
+    edits: [stroke('first-cut', 490, 560, 210), rail('fast-track', 'arrow', 1460, 560, 160, 160)],
+    hazards: [teeth(1030, 120), teeth(1830, 110), teeth(2210, 90)],
+    sweepers: [saw(930, 490, 110, 70, 1900, 23), saw(2000, 365, 190, 0, 1700, 24, .3)],
+    fragments: [{ x: 760, y: 345 }, { x: 1090, y: 385 }, { x: 2020, y: 375 }],
+    checkpoint: { x: 1280, y: 570 }, exit: { x: 2390, y: 540 },
+    secret: 'HIGH ROUTE // Fewer obstacles. Smaller landing zones.',
+  },
+  {
+    name: 'Missing Pieces', chapter: 0, subtitle: 'Build your landing before you need it.', par: 23,
+    note: 'Stroke [1] draws a temporary landing. Keep moving; ink regenerates. The blue bridge timer is real.',
+    dialogue: 'NOTHING UNDER YOUR FEET? FIX THAT.', goal: 'Chain the fading platforms.', width: 2700,
+    platforms: [floor(0, 430), floor(1070, 400), floor(2290, 410), ledge(780, 350, 120), ledge(1170, 420, 120), ledge(1970, 340, 120)],
+    edits: [stroke('cut-a', 450, 560, 180, 3400), stroke('cut-b', 720, 500, 170, 3400), stroke('cut-c', 1600, 550, 220, 3000), stroke('cut-d', 1940, 490, 180, 3000)],
+    hazards: [teeth(1200, 100), teeth(2390, 120)],
+    sweepers: [saw(875, 430, 0, 120, 1700, 25), saw(1740, 420, 200, 0, 1500, 24, .4), saw(2160, 390, 0, 140, 1600, 26)],
+    fragments: [{ x: 830, y: 295 }, { x: 1230, y: 365 }, { x: 2030, y: 285 }],
+    checkpoint: { x: 1380, y: 570 }, exit: { x: 2590, y: 540 },
+    secret: 'A clean run is faster than a perfect drawing.',
+  },
+  {
+    name: 'The Broken Staircase', chapter: 0, subtitle: 'Vertical pressure.', par: 25,
+    note: 'Jump, sketch, land, dash. Up + Shift gives a vertical dash. Miss a step and reset instantly with R.',
+    dialogue: 'GO UP. DO NOT HESITATE.', goal: 'Climb through the saw lanes.', width: 2700,
+    platforms: [floor(0, 500), ledge(650, 470, 160), ledge(1110, 350, 180), ledge(1600, 240, 200), ledge(2060, 380, 180), floor(2350, 350)],
+    edits: [stroke('stair-a', 460, 500, 150), stroke('stair-b', 860, 410, 150), stroke('stair-c', 1380, 290, 150), stroke('stair-d', 1830, 310, 140)],
+    hazards: [teeth(300, 75), teeth(2420, 90)],
+    sweepers: [saw(930, 335, 135, 0, 1500, 24), saw(1740, 170, 0, 155, 1800, 26), saw(2170, 290, 125, 0, 1600, 23, .5)],
+    fragments: [{ x: 720, y: 415 }, { x: 1190, y: 295 }, { x: 1690, y: 185 }],
+    checkpoint: { x: 1200, y: 315 }, exit: { x: 2590, y: 540 },
+    secret: 'HEIGHT IS SPEED // Drop into the next jump.',
+  },
+  {
+    name: 'The Pencil Factory', chapter: 1, subtitle: 'Production never stops.', par: 26,
+    note: 'Arrow [2] launches you along a drawn direction. Click the outlined lifts to run their rails.',
+    dialogue: 'THE FLOOR IS THE SLOW ROUTE.', goal: 'Use the lifts. Cut across the factory.', width: 2800,
+    platforms: [floor(0, 480), floor(890, 360), floor(1790, 420), floor(2500, 300), ledge(650, 390, 170), ledge(1460, 330, 170), ledge(2110, 400, 140)],
+    edits: [rail('press-lift', 'arrow', 510, 570, 140, 0, -240), stroke('assembly-step', 1270, 470, 160), rail('loading-lift', 'arrow', 1630, 570, 140, 0, -300), stroke('conveyor-gap', 2220, 540, 220)],
+    hazards: [teeth(1000, 100), teeth(1900, 140)],
+    sweepers: [saw(780, 320, 0, 170, 1700, 27), saw(1500, 465, 160, 0, 1350, 25), saw(2310, 450, 0, 120, 1550, 27, .3)],
+    fragments: [{ x: 720, y: 335 }, { x: 1530, y: 275 }, { x: 2180, y: 345 }],
+    checkpoint: { x: 1180, y: 570 }, exit: { x: 2690, y: 540 },
+    secret: 'FACTORY RECORD // Top route, no stops.',
+  },
+  {
+    name: 'A Little Push', chapter: 1, subtitle: 'Turn momentum into a weapon.', par: 24,
+    note: 'Launch through the gap. A dash destroys a moving saw temporarily. Spikes still kill you.',
+    dialogue: 'HIT THE SAW BEFORE IT HITS YOU.', goal: 'Punch through the moving blockade.', width: 2900,
+    platforms: [floor(0, 520), floor(880, 480), floor(1730, 450), floor(2520, 380), ledge(630, 420, 150), ledge(1140, 340, 150), ledge(1900, 390, 140)],
+    edits: [rail('shove', 'arrow', 540, 530, 170, 230), rail('recoil', 'loop', 1390, 530, 180, 220), stroke('exit-cut', 2210, 540, 220)],
+    hazards: [teeth(960, 140), teeth(1830, 120), teeth(2600, 100)],
+    sweepers: [saw(750, 440, 0, 100, 1500, 26), saw(1490, 460, 180, 0, 1250, 27), saw(2130, 420, 0, 140, 1500, 28)],
+    fragments: [{ x: 700, y: 365 }, { x: 1210, y: 285 }, { x: 1970, y: 335 }],
+    checkpoint: { x: 1270, y: 570 }, exit: { x: 2790, y: 540 },
+    secret: 'Dash into danger. Not into the floor.',
+  },
+  {
+    name: 'Across the Margin', chapter: 1, subtitle: 'There is no bridge coming.', par: 27,
+    note: 'Long gaps reward mid-air sketches. Draw a landing, recover your dash, then launch again.',
+    dialogue: 'YOUR LINE IS THE ROUTE.', goal: 'Cross the canyon without losing momentum.', width: 3200,
+    platforms: [floor(0, 470), floor(1230, 350), floor(2710, 490), ledge(680, 470, 100), ledge(960, 380, 100), ledge(1770, 480, 130), ledge(2120, 390, 130), ledge(2440, 490, 120)],
+    edits: [stroke('ledge-cut', 500, 550, 160), rail('margin-runner', 'arrow', 800, 520, 140, 240), rail('canyon-return', 'loop', 1600, 550, 150, 380), stroke('last-foothold', 2290, 450, 120)],
+    hazards: [teeth(2810, 140)],
+    sweepers: [saw(870, 350, 0, 170, 1900, 26), saw(1690, 410, 160, 0, 1450, 26), saw(2200, 315, 0, 170, 1650, 28), saw(2590, 420, 110, 0, 1200, 24, .5)],
+    fragments: [{ x: 1010, y: 325 }, { x: 1830, y: 425 }, { x: 2190, y: 335 }],
+    checkpoint: { x: 1410, y: 570 }, exit: { x: 3090, y: 540 },
+    secret: 'AIR ROUTE // The ground is optional.',
+  },
+  {
+    name: 'The Clockwork Page', chapter: 2, subtitle: 'Read the cycle. Commit.', par: 25,
+    note: 'Loop [3] draws a stasis field around saws. Loop machines keep moving until reset.',
+    dialogue: 'THE NEXT OPENING IS YOURS.', goal: 'Chain the ferries and break the saw rhythm.', width: 2800,
+    platforms: [floor(0, 420), floor(1170, 350), floor(2390, 410), ledge(820, 380, 140), ledge(1780, 310, 140), ledge(2130, 420, 140)],
+    edits: [rail('clock-a', 'loop', 450, 550, 180, 500), rail('clock-b', 'loop', 1580, 540, 160, 550)],
+    hazards: [teeth(1250, 100), teeth(2520, 120)],
+    sweepers: [saw(720, 420, 0, 130, 1600, 27), saw(1790, 440, 220, 0, 1450, 28), saw(2270, 310, 0, 160, 1700, 27, .35)],
+    fragments: [{ x: 890, y: 325 }, { x: 1850, y: 255 }, { x: 2200, y: 365 }],
+    checkpoint: { x: 1440, y: 570 }, exit: { x: 2690, y: 540 },
+    secret: 'A loop gives you an opening. You still have to take it.',
+  },
+  {
+    name: 'A Matter of Timing', chapter: 2, subtitle: 'Three axes. No dead time.', par: 28,
+    note: 'The lifts move through danger. Sketch in the air, dash off early, and use a Loop to hold a safe window.',
+    dialogue: 'ONE BAD LANDING IS ALL IT TAKES.', goal: 'Stay above the machinery.', width: 2900,
+    platforms: [floor(0, 450), floor(1080, 340), floor(2470, 430), ledge(950, 360, 220), ledge(1810, 250, 130), ledge(2240, 390, 140)],
+    edits: [rail('elevator', 'loop', 500, 560, 180, 0, -240), rail('transfer', 'loop', 1460, 360, 180, 220), stroke('timing-step', 2010, 340, 160)],
+    hazards: [teeth(1130, 140), teeth(2560, 140)],
+    sweepers: [saw(610, 435, 150, 0, 1400, 27), saw(1220, 290, 140, 0, 1600, 27), saw(1710, 220, 0, 170, 1450, 28), saw(2140, 270, 0, 160, 1600, 26, .4)],
+    fragments: [{ x: 590, y: 265 }, { x: 1880, y: 195 }, { x: 2310, y: 335 }],
+    checkpoint: { x: 1060, y: 325 }, exit: { x: 2790, y: 540 },
+    secret: 'THE FAST LINE // Leave the lift before it stops.',
+  },
+  {
+    name: 'The Inkstorm', chapter: 2, subtitle: 'Your route is already disappearing.', par: 26,
+    note: 'Outlined bridges expire in three seconds. Draw late, land clean, move immediately. R resets every timer.',
+    dialogue: 'THREE SECONDS. MAKE THEM COUNT.', goal: 'Outrun the fading platforms.', width: 3200,
+    platforms: [floor(0, 410), floor(1290, 360), floor(2790, 410), ledge(780, 350, 130), ledge(1400, 410, 130), ledge(2180, 360, 130)],
+    edits: [stroke('storm-a', 450, 550, 230, 3000), stroke('storm-b', 850, 490, 240, 3000), stroke('storm-c', 1690, 550, 240, 2800), stroke('storm-d', 2030, 490, 250, 2800), stroke('storm-e', 2390, 530, 260, 3200)],
+    hazards: [teeth(1370, 100), teeth(2910, 100)],
+    sweepers: [saw(700, 420, 0, 130, 1400, 25), saw(1140, 440, 100, 0, 1300, 26), saw(1900, 375, 0, 160, 1500, 28), saw(2420, 410, 220, 0, 1450, 29, .3)],
+    fragments: [{ x: 845, y: 295 }, { x: 1460, y: 355 }, { x: 2240, y: 305 }],
+    checkpoint: { x: 1560, y: 570 }, exit: { x: 3090, y: 540 },
+    secret: 'Nothing here is permanent. Including the obstacles.',
+  },
+  {
+    name: 'Broken Rules', chapter: 3, subtitle: 'Use everything. Hesitate nowhere.', par: 29,
+    note: 'Stroke a landing. Arrow a launch. Loop a saw. Swap tools with 1/2/3 without stopping.',
+    dialogue: 'ONE RUN. THREE TOOLS.', goal: 'Break through the mixed gauntlet.', width: 3400,
+    platforms: [floor(0, 460), floor(1120, 330), floor(2380, 440), floor(3090, 310), ledge(850, 400, 140), ledge(1810, 320, 150), ledge(2090, 410, 130), ledge(2680, 350, 140)],
+    edits: [stroke('fracture', 500, 550, 250, 3500), rail('launch-rig', 'arrow', 1470, 550, 180, 0, -230), rail('crossfire', 'loop', 2000, 360, 170, 260), stroke('exit-fracture', 2840, 520, 190, 3000)],
+    hazards: [teeth(1190, 100), teeth(2500, 150), teeth(3150, 70)],
+    sweepers: [saw(810, 465, 160, 0, 1350, 27), saw(1700, 410, 0, 150, 1450, 29), saw(2210, 290, 0, 160, 1400, 28), saw(2890, 410, 0, 100, 1200, 26, .5)],
+    fragments: [{ x: 920, y: 345 }, { x: 1880, y: 265 }, { x: 2750, y: 295 }],
+    checkpoint: { x: 1370, y: 570 }, exit: { x: 3290, y: 540 },
+    secret: 'The quickest route is the one you draw yourself.',
+  },
+  {
+    name: 'The Eraser’s Workshop', chapter: 3, subtitle: 'A machine built to delete you.', par: 32,
+    note: 'The upper route cuts across the workshop. The lower route has room to recover and worse saw lanes.',
+    dialogue: 'DO NOT GIVE THE ERASER A CLEAN SHOT.', goal: 'Cut through the workshop.', width: 3600,
+    platforms: [floor(0, 500), floor(1030, 360), floor(1960, 360), floor(3070, 530), ledge(580, 450, 150), ledge(860, 310, 160), ledge(1220, 490, 100), ledge(1370, 400, 140), ledge(1650, 280, 140), ledge(2320, 420, 140), ledge(2700, 300, 170)],
+    edits: [rail('workshop-lift', 'arrow', 780, 560, 150, 0, -210), rail('scrap-runner', 'loop', 1540, 540, 160, 190), stroke('archive-cut', 2500, 460, 130), rail('escape-lift', 'arrow', 2890, 540, 150, 0, -160)],
+    hazards: [teeth(300, 90), teeth(1110, 100), teeth(2010, 60), teeth(3210, 170)],
+    sweepers: [saw(760, 340, 0, 150, 1400, 28), saw(1410, 300, 150, 0, 1250, 28), saw(1840, 390, 0, 165, 1550, 29), saw(2580, 330, 130, 0, 1300, 29), saw(2990, 285, 0, 170, 1400, 27, .4)],
+    fragments: [{ x: 930, y: 255 }, { x: 1720, y: 225 }, { x: 2770, y: 245 }],
+    checkpoint: { x: 2180, y: 570 }, exit: { x: 3490, y: 540 },
+    secret: 'ARCHIVE // Every erased line left a mark.',
+  },
+  {
+    name: 'The Last Drawing', chapter: 3, subtitle: 'Write your way out.', par: 34,
+    note: 'Every tool, every axis. Chain dashes through the saws. Keep a charge for the last gap.',
+    dialogue: 'THE ERASER IS OUT OF ROOM.', goal: 'Reach the Eraser. End the loop.', width: 3600,
+    platforms: [floor(0, 420), floor(1110, 300), floor(2240, 340), floor(3220, 380), ledge(690, 420, 140), ledge(1540, 430, 130), ledge(1890, 310, 150), ledge(2720, 380, 140), ledge(3020, 460, 110)],
+    edits: [stroke('last-start', 450, 550, 190), rail('last-launch', 'arrow', 900, 560, 150, 0, -240), rail('last-cycle', 'loop', 1710, 490, 150, 0, -180), stroke('last-memory', 2410, 480, 210, 3000), stroke('last-line', 2870, 500, 170, 2500)],
+    hazards: [teeth(1200, 50), teeth(2320, 100), teeth(3310, 100)],
+    sweepers: [saw(780, 330, 0, 165, 1300, 28), saw(1530, 330, 140, 0, 1250, 29), saw(2040, 330, 0, 170, 1400, 30), saw(2670, 290, 0, 160, 1200, 29), saw(3140, 365, 0, 125, 1300, 28), saw(3370, 450, 120, 0, 1400, 27, .5)],
+    fragments: [{ x: 760, y: 365 }, { x: 1960, y: 255 }, { x: 2790, y: 325 }],
+    checkpoint: { x: 1320, y: 570 }, exit: { x: 3490, y: 540 },
+    secret: 'FINAL RECORD // No line left behind.',
+  },
+];
+
+export function availableTools(_level: number): Tool[] {
+  return ['stroke', 'arrow', 'loop'];
+}
+
+export function gestureValid(tool: Tool, points: { x: number; y: number }[]): boolean {
+  if (points.length < 4) return true;
+  const a = points[0], b = points[points.length - 1];
+  const length = points.slice(1).reduce((n, p, i) => n + Math.hypot(p.x - points[i].x, p.y - points[i].y), 0);
+  if (length < 18) return true;
+  if (tool === 'stroke') return length > 25;
+  if (tool === 'arrow') return Math.hypot(b.x - a.x, b.y - a.y) > 25;
+  const xs = points.map(p => p.x), ys = points.map(p => p.y);
+  return Math.max(...xs) - Math.min(...xs) > 25 && Math.max(...ys) - Math.min(...ys) > 25 && Math.hypot(b.x - a.x, b.y - a.y) < length * .65;
 }

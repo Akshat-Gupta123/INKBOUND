@@ -1,33 +1,50 @@
-import {test,expect} from '@playwright/test';
-async function scene(page:any,fn:string,arg?:unknown){return page.evaluate(({fn,arg}:any)=>{const s=(window as any).inkbound.scene.getScene('Book');return new Function('s','arg',fn)(s,arg);},{fn,arg});}
-test('cover, actual movement, jump, pause, reset and chapter menu',async({page})=>{
- const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.getByRole('button',{name:'Open the sketchbook'}).click();await expect(page.locator('.hud h3')).toHaveText('First Steps');await page.waitForTimeout(600);
- const x=await scene(page,'return s.player.sprite.x');await page.keyboard.down('d');await expect.poll(()=>scene(page,'return s.player.sprite.x')).toBeGreaterThan(x+50);await page.keyboard.up('d');
- const y=await scene(page,'return s.player.sprite.y');await page.keyboard.down('Space');await expect.poll(()=>scene(page,'return s.player.sprite.y'),{intervals:[30]}).toBeLessThan(y-20);await page.keyboard.up('Space');
- await page.keyboard.press('Escape');await expect(page.getByText('A little breathing room.')).toBeVisible();const pausedX=await scene(page,'return s.player.sprite.x');await page.waitForTimeout(100);expect(await scene(page,'return s.player.sprite.x')).toEqual(pausedX);await page.getByRole('button',{name:'Keep drawing'}).click();await page.keyboard.press('r');expect(await scene(page,'return s.ink')).toBe(6);
- await page.keyboard.press('Escape');await page.getByRole('button',{name:'Chapter selection',exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(12);expect(errors).toEqual([]);
+import { test, expect, type Page } from '@playwright/test';
+import { levels } from '../../src/levels';
+async function scene(page:Page,fn:string,arg?:unknown){return page.evaluate(({fn,arg})=>new Function('s','arg',fn)((window as any).inkbound.scene.getScene('Book'),arg),{fn,arg});}
+async function start(page:Page,index=0){await page.goto('/');await page.getByRole('button',{name:'Select stage',exact:true}).click();await page.locator('.level-button').nth(index).click();await expect(page.locator('.hud h3')).toHaveText(levels[index].name);}
+async function worldPoint(page:Page,x:number,y:number){return page.evaluate(({x,y})=>{const c=(window as any).inkbound.scene.getScene('Book').cameras.main,r=document.querySelector('canvas')!.getBoundingClientRect();return {x:r.x+(x-c.scrollX)*r.width/1280,y:r.y+(y-c.scrollY)*r.height/720};},{x,y});}
+async function draw(page:Page,points:{x:number;y:number}[]){const a=await worldPoint(page,points[0].x,points[0].y);await page.mouse.move(a.x,a.y);await page.mouse.down();for(const point of points.slice(1)){const p=await worldPoint(page,point.x,point.y);await page.mouse.move(p.x,p.y,{steps:5});}await page.mouse.up();}
+
+test('fast keyboard movement, air dash, pause, and all tools available immediately',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await start(page);
+ await expect(page.locator('.tool:disabled')).toHaveCount(0);await expect.poll(()=>scene(page,'return s.player.sprite.body.blocked.down')).toBe(true);
+ await page.keyboard.down('d');await expect.poll(()=>scene(page,'return s.player.sprite.body.velocity.x'),{intervals:[20]}).toBeGreaterThan(500);
+ await page.keyboard.down('Space');await expect.poll(()=>scene(page,'return s.player.sprite.body.velocity.y'),{intervals:[20]}).toBeLessThan(-500);await page.keyboard.up('Space');
+ await page.keyboard.down('Shift');await expect.poll(()=>scene(page,'return s.player.isDashing'),{intervals:[10]}).toBe(true);expect(await scene(page,'return s.player.sprite.body.velocity.x')).toBeGreaterThan(900);await page.keyboard.up('Shift');await page.keyboard.up('d');
+ await page.keyboard.press('Escape');await expect(page.getByText('RUN PAUSED',{exact:true})).toBeVisible();const x=await scene(page,'return s.player.sprite.x');await page.waitForTimeout(120);expect(await scene(page,'return s.player.sprite.x')).toBe(x);await page.getByRole('button',{name:'Resume run'}).click();await page.keyboard.press('e');expect(await scene(page,'return s.physics.world.timeScale')).toBe(1);expect(errors).toEqual([]);
 });
-test('all tools affect real collision and movement; resets, checkpoints, fragments and saved ending',async({page})=>{
- const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.getByRole('button',{name:'Explore the chapters'}).click();await page.locator('.level-button').nth(9).click();
- await scene(page,"s.sketch=true;s.syncSketch();s.activate(s.drawings[0]);return s.drawings[0].body.body.enable").then(v=>expect(v).toBe(true));
- await scene(page,'s.activate(s.drawings[1]);s.activate(s.drawings[2]);return s.ink').then(v=>expect(v).toBe(3));await page.waitForTimeout(600);expect(await scene(page,'return s.drawings[1].body.y<s.drawings[1].fromY')).toBe(true);expect(await scene(page,'return s.drawings[2].body.x>s.drawings[2].fromX')).toBe(true);
- await scene(page,'s.reset();return s.drawings.every(d=>!d.active)').then(v=>expect(v).toBe(true));expect(await scene(page,'return s.drawings[0].body.body.enable')).toBe(false);
- await scene(page,'s.sketch=false;s.syncSketch();const p=s.player.sprite;s.player.teleport(s.levels?.x??1100,550)');await page.waitForTimeout(150);expect(await scene(page,'return s.checkpointLit')).toBe(true);
- await scene(page,'s.player.teleport(1490,295)');await page.waitForTimeout(80);expect(await scene(page,'return s.found.has(1)')).toBe(true);
- // Visit every real level scene, satisfy its mechanisms, and exercise the exit trigger.
- for(let i=0;i<12;i++){await scene(page,'s.start(arg);s.drawings.forEach(d=>s.activate(d));s.drawings.filter(d=>d.def.plate).forEach(d=>{d.elapsed=100000;d.body.setPosition(d.toX,d.toY)});',i);await page.waitForTimeout(80);await scene(page,'const l=s.index===arg?arg:0;s.player.teleport(s.physics.world.bounds.width-110,560)',i);if(i===2)await scene(page,'s.player.teleport(2040,350)');if(i===4)await scene(page,'s.player.teleport(2070,560)');if(i===10)await scene(page,'s.player.teleport(3080,560)');if(i===11)await scene(page,'s.player.teleport(3150,560)');await page.waitForTimeout(100);expect(await scene(page,'return s.finished')).toBe(true);}
- await expect(page.getByText('The last drawing.',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Turn the page'}).click();await page.getByRole('button',{name:'Turn the page'}).click();await expect(page.getByText('Beautifully unfinished.',{exact:true})).toBeVisible();await page.getByRole('button',{name:'The people behind the page'}).click();await expect(page.getByText('Made of possibility.')).toBeVisible();await page.getByRole('button',{name:'Return to the cover'}).click();await page.reload();await page.getByRole('button',{name:'Explore the chapters'}).click();expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).completed.length)).toBe(12);expect(errors).toEqual([]);
+
+test('mouse-drawn slope has real collision, expires, and ink regenerates',async({page})=>{
+ await start(page);await draw(page,[{x:350,y:400},{x:540,y:400}]);
+ expect(await scene(page,'return s.liveInk.drawings.length')).toBe(1);
+ expect(await scene(page,'return s.liveInk.drawings[0].bodies.length')).toBeGreaterThan(2);
+ await scene(page,'s.player.teleport(440,300)');await expect.poll(()=>scene(page,'return Math.round(s.player.sprite.body.bottom)'),{intervals:[30]}).toBe(400);
+ expect(await scene(page,'return s.player.sprite.body.blocked.down')).toBe(true);
+ await expect.poll(()=>scene(page,'return s.liveInk.drawings.length'),{timeout:5000}).toBe(0);
+ await expect.poll(()=>scene(page,'return s.ink')).toBe(6);
 });
-test('mouse Stroke creates a correctly sized physical bridge and Arrow carries its rider',async({page})=>{
- await page.goto('/');await page.getByRole('button',{name:'Explore the chapters'}).click();await page.locator('.level-button').nth(1).click();await page.keyboard.press('e');
- const point=await page.evaluate(()=>{const r=document.querySelector('canvas')!.getBoundingClientRect();return {x:r.x+600*r.width/1280,y:r.y+612*r.height/720};});await page.mouse.click(point.x,point.y);
- await expect.poll(()=>scene(page,'return s.drawings[0].active')).toBe(true);await page.keyboard.press('e');
- expect(await scene(page,'return Math.round(s.drawings[0].body.body.width)')).toBe(420);
- await scene(page,'s.player.teleport(620,510)');await expect.poll(()=>scene(page,'return s.player.sprite.body.blocked.down'),{intervals:[50]}).toBe(true);expect(await scene(page,'return Math.round(s.player.sprite.body.bottom)')).toBe(610);
- await scene(page,'s.start(3);s.player.teleport(650,545)');await expect.poll(()=>scene(page,'return s.player.sprite.body.touching.down'),{intervals:[50]}).toBe(true);const y=await scene(page,'return s.player.sprite.y');await scene(page,'s.activate(s.drawings[0])');await expect.poll(()=>scene(page,'return s.player.sprite.y')).toBeLessThan(y-35);expect(await scene(page,'return Math.abs(s.player.sprite.body.bottom-(s.drawings[0].body.y-s.drawings[0].def.h/2))')).toBeLessThan(15);
+
+test('a free Arrow launches the player and a Loop actually freezes moving threats',async({page})=>{
+ await start(page);await page.keyboard.press('2');await expect.poll(()=>scene(page,'return s.player.sprite.body.blocked.down')).toBe(true);
+ await draw(page,[{x:130,y:580},{x:330,y:440}]);await expect.poll(()=>scene(page,'return s.player.sprite.body.velocity.x'),{intervals:[15]}).toBeGreaterThan(700);
+ await scene(page,'s.player.teleport(130,550);s.liveInk.clear();const z=s.sweepers[0];s.player.teleport(z.x-160,z.y);s.drawFree("loop",[{x:z.x,y:z.y}]);');
+ await expect.poll(()=>scene(page,'return s.sweepers[0].frozen')).toBe(true);
+ const t=await scene(page,'return s.sweepers[0].elapsed');await page.waitForTimeout(180);expect(await scene(page,'return s.sweepers[0].elapsed')).toBe(t);
+ await scene(page,'s.liveInk.clear()');await expect.poll(()=>scene(page,'return s.sweepers[0].elapsed')).toBeGreaterThan(t);
 });
-test('the first page can be completed entirely with keyboard play',async({page})=>{
- await page.goto('/');await page.getByRole('button',{name:'Open the sketchbook'}).click();await expect.poll(()=>scene(page,'return s.player.sprite.body.blocked.down')).toBe(true);await page.keyboard.down('d');
- for(const edge of [495,1135]){await expect.poll(()=>scene(page,'return s.player.sprite.x'),{timeout:7000,intervals:[30]}).toBeGreaterThan(edge);await page.keyboard.down('Space');await expect.poll(()=>scene(page,'return s.player.sprite.body.velocity.y'),{intervals:[20]}).toBeLessThan(-100);await expect.poll(()=>scene(page,'return s.player.sprite.body.blocked.down'),{timeout:3000,intervals:[30]}).toBe(true);await page.keyboard.up('Space');}
- await expect(page.getByText('Another page, restored.')).toBeVisible({timeout:7000});await page.keyboard.up('d');expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).deaths)).toBe(0);
+
+test('saws punish contact, fast respawns refill ink, dash breaks a saw',async({page})=>{
+ await start(page);await scene(page,'const z=s.sweepers[0];s.player.teleport(z.x,z.y);');await expect.poll(()=>scene(page,'return s.runDeaths')).toBe(1);
+ expect(await scene(page,'return s.player.sprite.x')).toBeLessThan(200);expect(await scene(page,'return s.ink')).toBe(6);
+ await page.waitForTimeout(480);await scene(page,'const z=s.sweepers[0];s.player.teleport(z.x,z.y);');await page.keyboard.down('Shift');
+ await expect.poll(()=>scene(page,'return s.sweepers[0].disabled'),{intervals:[10]}).toBeGreaterThan(1000);await page.keyboard.up('Shift');
+ await page.keyboard.press('r');expect(await scene(page,'return s.liveInk.drawings.length')).toBe(0);
+});
+
+test('every stage has hazards, its exit works, completion and settings persist',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await start(page);
+ // Integration coverage of exit/save/ending; positioning is deliberate, not a full playthrough.
+ for(let i=0;i<12;i++){await scene(page,'s.start(arg.i);s.player.teleport(arg.x,arg.y);',{i,x:levels[i].exit.x,y:levels[i].exit.y+10});await expect.poll(()=>scene(page,'return s.finished')).toBe(true);expect(await scene(page,'return s.sweepers.length')).toBeGreaterThan(0);}
+ await expect(page.getByText('ERASER OFFLINE',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Continue →',exact:true}).click();await expect(page.getByText('RUN COMPLETE',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Credits →'}).click();await expect(page.locator('.sheet')).toContainText('INKBOUND');
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).completed.length)).toBe(12);await page.reload();expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).completed.length)).toBe(12);expect(errors).toEqual([]);
 });

@@ -1,63 +1,47 @@
-# INKBOUND: The Unfinished World
+# INKBOUND / OVERDRIVE
 
-An original, standalone sketchbook puzzle-platformer. Twelve pages across four chapters follow Pip, Scribble, Margin, and the Eraser. All art is drawn with Phaser Graphics, Canvas and CSS; sound and ambient notes are synthesized locally. No accounts, keys, backend, downloads at runtime, or external assets.
-
-## Run
-
-Node 22 or later (developed and verified on Node 24.22.1).
-
-```sh
-npm install
-npm run dev
-```
-
-For repeatable installation use `npm ci`. `npm run build` type-checks and builds `dist/`; `npm run preview` serves that production build. Deploy `dist/` to any static host.
+A fast precision platformer with live drawing. Twelve stages, moving saws, directional air dashes, regenerating ink, instant retries and ranked completion times. Charcoal procedural artwork and original synthesized audio; no backend or external assets.
 
 ## Play
 
-- A/D or arrows: walk. Space: jump; hold for extra height.
-- E: Sketch Mode. Time slows while drawing.
-- 1 / 2 / 3: Stroke / Arrow / Loop. Click an eligible highlighted object. Trace, drag along its rail, or draw a rough circle. A short click also works for every tool.
-- Stroke creates a solid platform; Arrow sends a mechanism along its illustrated rail; Loop makes it shuttle repeatedly. Rails constrain gestures to preserve puzzle solvability.
-- R: undo the puzzle, restore six ink charges, and return to the latest inkwell. Ink fragments already collected stay saved.
-- Esc: pause. M: mute. Volume, timer and reduced motion are in Settings.
+https://akshat-gupta123.github.io/INKBOUND/
 
-The chapter library lets you visit **every level from the beginning**, with no grinding or forced unlock order. Golden seals record completion; the three fragments on each page reveal extra story. Look above the main route for Margin's hidden lofts. Temporary storm bridges last 12 game seconds. Brass plates require a directed crate. Gold gates require every drawing (or their associated pressure plate).
+- **A/D or left/right:** move. **Space:** jump; release to cut jump height.
+- **Shift or X:** dash. Hold WASD/arrows to aim in eight directions. Dash through a saw to break it temporarily. Ground spikes remain lethal.
+- **Mouse:** draw anywhere within reach while moving. Drawing never slows time.
+- **1 — Stroke:** draw a temporary solid path. A quick click creates a short flat platform. It lasts 3.6 seconds; slopes become closely spaced collision steps.
+- **2 — Arrow:** draw a launch direction. Touch the arrow to accelerate along it. It lasts 4.3 seconds. A click creates an upward-forward launch.
+- **3 — Loop:** draw around a threat, or click to place a stasis field. Moving saws inside it freeze and become safe for 3 seconds.
+- **E:** toggle machine guides; no slowdown. Matching outlined machinery still responds to tool clicks. Active Arrow machines reverse on another activation.
+- **R:** restart at checkpoint, reset machines and refill ink. **Esc:** pause. **M:** mute.
 
-Progress, collected fragments, fastest times, settings, and achievements save in this browser's LocalStorage under `inkbound-v1`. Restricted storage still permits play for the current session.
+Each sketch costs one of six ink charges. Ink regenerates every 1.1 seconds; at most five free drawings coexist. Full mouse paths are capped at420px. Dash cooldown is650ms. Death returns immediately to the checkpoint with full ink and a brief grace period. Stage clear ranks reward time and low death counts. All stages and tools are available immediately.
 
-## Project map
+The campaign was rebuilt for this version. Existing completed stages and fragments remain saved. Old best times are not compared against the new ruleset; version2 starts a fresh time table.
 
-- `src/main.ts`: responsive Phaser initialization, Arcade Physics, Canvas renderer.
-- `src/game.ts`: scene lifecycle, puzzle objects, pointer gestures, checkpoints, progression and ending.
-- `src/player.ts`: fixed collision body, visual animation, acceleration, coyote time, jump buffering and variable jumps.
-- `src/levels.ts`: twelve handcrafted level definitions, chapter palettes and gesture recognition.
-- `src/art.ts`: procedural textures, character illustration, parallax chapter scenery.
-- `src/ui.ts` / `src/style.css`: sketchbook cover, chapter library, HUD, settings, pause, ending and credits.
-- `src/audio.ts`: Web Audio effects and synthesized ambient notes; starts after interaction.
-- `src/save.ts`: validated, versioned local progress and achievements.
-- `tests/`: Vitest campaign/save/gesture tests and Playwright real-browser acceptance checks.
+## Development
 
-## Add a page
+Node22+ (verified on24). Run `npm ci`, then `npm run dev`.
 
-Add a `Level` object to `src/levels.ts`: chapter index, paper width, solid rectangles, tool drawings, hazards, three fragments, an inkwell, and a folded-door exit. Coordinates use a 1280×720 logical canvas; floors normally start at y=610. Pip jumps about 161 px high with a full hold and travels up to about 290 px on a level jump. Make required gaps comfortably smaller and leave headroom. Drawings have unique IDs; `dx` or `dy` defines a constrained mechanism rail. `duration` makes a Stroke temporary. A crate with `plate:true` activates the level's plate. A gate without a plate requires all drawings. Place exit y approximately 70 px above its floor.
+- `npm run build` — TypeScript check and production build.
+- `npm test` — geometry, campaign and save unit tests.
+- `npm run test:browser` — Chromium integration and keyboard/mouse checks.
+- `npm run preview` — serve the production build.
 
-The current campaign and save format expect twelve pages and three fragments per page. Expanding the campaign beyond twelve requires adjusting the bounds in `src/save.ts`, menu percentages, chapter counts, and campaign tests. For replacing or rearranging a page, change only its data and rerun the tests. Add helpful level-specific `note`, dialogue, and a hidden `secret` line.
+Playwright uses `/usr/bin/chromium` in this environment. On another system, configure its executable or install Playwright Chromium. GitHub Actions builds/tests and publishes `dist/` after pushes to `main`. Vite uses relative asset paths for project Pages.
 
-## Validation
+## Main files
 
-```sh
-npm test
-npm run build
-npm run test:browser
-```
+- `src/game.ts`: stage lifecycle, hazards, machines, HUD, checkpoint/reset/ranking.
+- `src/player.ts`:540px/s run, coyote time, jump buffer, variable jump, directional dash and launch momentum.
+- `src/liveInk.ts`: live sketch collision bodies, arrow impulses, stasis fields and expiry/cleanup.
+- `src/inkGeometry.ts`: bounded gesture geometry, path sampling, click shortcuts.
+- `src/levels.ts`: twelve handcrafted layouts, saw motion, checkpoints, caches and par times.
+- `src/art.ts`, `src/ui.ts`, `src/style.css`, `src/audio.ts`: procedural art, interfaces and audio.
+- `src/save.ts`: defensive local progress storage and ruleset migration.
 
-Browser tests use `/usr/bin/chromium` in the supplied cloud environment and start Vite themselves. On another machine, install Playwright Chromium (`npx playwright install chromium`) and remove `executablePath` from `playwright.config.ts`, or point it at your local Chromium. The suite checks real keyboard movement and jumping, pause/reset, a mouse-created bridge and landing, moving-platform riding, tool effects, checkpoint/fragment state, all twelve exit triggers, saved replay, and the ending/credits. Some progression checks deliberately position the player and activate mechanisms through the scene API; they are integration checks, not a complete unassisted playthrough.
+Add or replace a stage in `levels.ts`, including platforms, hazards, sweepers, edits, three fragments, checkpoint, exit and par time. Sweeper `period` is a full out/back cycle in milliseconds; `phase` is normalized0–1. Keep the spawn and checkpoint outside hazard paths. Full jump rises about194px and travels about500px; provide safe landing space at high speeds. Campaign/save bounds currently assume twelve stages. Test all intended routes in the browser; geometric tests cannot establish that a route feels fair.
 
-## Scope and limitations
+## Verification limits
 
-This is a compact playable campaign. The requested 30–50-minute first-playthrough target has not been established through player testing; experienced players may finish considerably faster. Secret areas are optional upper-route story lofts rather than large separate maps. The finale is a restorative puzzle and illustrated dialogue sequence rather than a combat boss. Desktop keyboard and pointer input are required; touch controls and gamepads are not implemented. Phaser produces a large-bundle advisory during build; the complete client bundle is approximately 355 KB gzipped.
-
-## Published site
-
-GitHub Pages is configured through `.github/workflows/pages.yml`. Pushing to `main` runs the unit suite, builds the client, and publishes `dist/`. Vite uses relative asset URLs so the game also works at the `/INKBOUND/` project path. The workflow can also be started manually from GitHub Actions.
+Automated checks exercise real free-drawing collisions, launches, stasis, dash/contact, reset, progression and save behavior. Exit integration tests deliberately position the player; they do not represent a full unassisted campaign playthrough. Difficulty, par targets and first-playthrough length still need human balancing. Desktop keyboard/mouse required; no mobile controls. Phaser produces a large-bundle advisory during builds.
