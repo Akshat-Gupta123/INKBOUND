@@ -6,8 +6,8 @@ export const tutorialSteps = [
   {title:'Loop: freeze a threat',copy:'Press 3. Draw a loop around the moving saw, or click it to place a stasis field.',tip:'Frozen saws turn blue and are safe until the field expires.',tool:'loop'},
   {title:'Dash through a saw',copy:'Moving red saws are dangerous. Dash into this one with Shift or X to break it temporarily.',tip:'This is safe practice. In real levels, red ground spikes still kill during a dash.',tool:'stroke'},
   {title:'Edit the machinery',copy:'Press E for guides. Use 1, 2, then 3 and click each matching outlined machine.',tip:'Stroke restores it. Arrow moves it. Loop makes it repeat. All three must be active.',tool:'stroke'},
-  {title:'Caches, checkpoints + reset',copy:'Grab a diamond, touch the inkwell, then press R to reset at that checkpoint.',tip:'R refills ink and clears sketches. Collected caches stay saved in regular levels.',tool:'stroke'},
-  {title:'Ready to run',copy:'Reach the exit on the right. Then choose any level and difficulty from the picker.',tip:'Esc pauses. M mutes. Music and effect volumes are separate in Settings.',tool:'stroke'},
+  {title:'Caches, checkpoints + reset',copy:'Grab a diamond, touch the inkwell, then press R to reset at that checkpoint.',tip:'This checkpoint is practice-only. In regular courses, death or R restarts from the beginning.',tool:'stroke'},
+  {title:'Ready to run',copy:'Reach the exit on the right. Then choose any course from the picker. Every regular course is a full-run challenge.',tip:'Esc pauses. M mutes. Music and effect volumes are separate in Settings.',tool:'stroke'},
 ] as const;
 
 import Phaser from 'phaser';

@@ -4,13 +4,14 @@ import type { Tool } from './levels';
 import type { Player } from './player';
 import { sound } from './audio';
 import { save } from './save';
+import { runRules, type RunRules } from './rules';
 export type LiveDrawing = { plan: InkPlan; art: Phaser.GameObjects.Graphics; bodies: Phaser.Physics.Arcade.Image[]; colliders: Phaser.Physics.Arcade.Collider[]; age: number; launchCooldown: number };
 const colors = { stroke: 0xd8ed62, arrow: 0xff7055, loop: 0x6cdbea };
 export class LiveInk {
   drawings: LiveDrawing[] = [];
-  constructor(private scene: Phaser.Scene, private player: Player) {}
+  constructor(private scene: Phaser.Scene, private player: Player, private rules: RunRules = runRules) {}
   create(tool: Tool, points: Point[]) {
-    const plan = planInk(tool, points, this.player.visual.flipX ? -1 : 1);
+    const plan = planInk(tool, points, this.player.visual.flipX ? -1 : 1, this.rules);
     if (!plan) return false;
     const drawing: LiveDrawing = { plan, art: this.scene.add.graphics().setDepth(7), bodies: [], colliders: [], age: 0, launchCooldown: 0 };
     for (const p of plan.platforms) {
@@ -22,7 +23,7 @@ export class LiveInk {
       }));
     }
     this.drawings.push(drawing);
-    if (this.drawings.length > 5) this.remove(this.drawings[0]);
+    if (this.drawings.length > this.rules.maxDrawings) this.remove(this.drawings[0]);
     sound.play('draw');
     return true;
   }

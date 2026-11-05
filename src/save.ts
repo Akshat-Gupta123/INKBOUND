@@ -4,17 +4,22 @@ export type Save = {
   progress:Record<string,number>; current:number; tutorialComplete:boolean;
   muted:boolean; volume:number; musicVolume:number; sfxVolume:number; reduced:boolean; timer:boolean; deaths:number; edits:number;
 };
-const defaults=():Save=>({ruleset:2,completed:[],fragments:{},times:{},progress:{},current:0,tutorialComplete:false,muted:false,volume:.65,musicVolume:.45,sfxVolume:.7,reduced:false,timer:true,deaths:0,edits:0});
+export const RULESET = 3;
+const defaults=():Save=>({ruleset:RULESET,completed:[],fragments:{},times:{},progress:{},current:0,tutorialComplete:false,muted:false,volume:.65,musicVolume:.45,sfxVolume:.7,reduced:false,timer:true,deaths:0,edits:0});
 const valid=(n:unknown)=>Number.isInteger(n)&&Number(n)>=0&&Number(n)<levels.length;
 export function load():Save {
   try {
     const raw=JSON.parse(localStorage.getItem('inkbound-v1')||'null');if(!raw||typeof raw!=='object')return defaults();
-    const s=defaults();s.completed=Array.isArray(raw.completed)?[...new Set<number>(raw.completed.filter(valid))]:[];
+    const s=defaults(), compatible=raw.ruleset===RULESET;
+    // Entire courses changed. Archive old records instead of crediting old clears
+    // or destroying them; tutorial completion, preferences and lifetime stats remain.
+    if(!compatible){try{const archive='inkbound-archive-ruleset-'+(raw.ruleset===2?'2':'legacy');if(!localStorage.getItem(archive))localStorage.setItem(archive,JSON.stringify(raw));}catch{/* A full quota must not prevent play. */}}
+    s.completed=compatible&&Array.isArray(raw.completed)?[...new Set<number>(raw.completed.filter(valid))]:[];
     s.current=valid(raw.current)?raw.current:0;
     for(let i=0;i<levels.length;i++){
-      if(Array.isArray(raw.fragments?.[i]))s.fragments[i]=[...new Set<number>(raw.fragments[i].filter((n:unknown)=>Number.isInteger(n)&&Number(n)>=0&&Number(n)<3))];
-      if(raw.ruleset===2&&Number.isFinite(raw.times?.[i])&&raw.times[i]>0)s.times[i]=raw.times[i];
-      if(Number.isFinite(raw.progress?.[i]))s.progress[i]=Math.max(0,Math.min(100,raw.progress[i]));
+      if(compatible&&Array.isArray(raw.fragments?.[i]))s.fragments[i]=[...new Set<number>(raw.fragments[i].filter((n:unknown)=>Number.isInteger(n)&&Number(n)>=0&&Number(n)<3))];
+      if(compatible&&Number.isFinite(raw.times?.[i])&&raw.times[i]>0)s.times[i]=raw.times[i];
+      if(compatible&&Number.isFinite(raw.progress?.[i]))s.progress[i]=Math.max(0,Math.min(100,raw.progress[i]));
       if(s.completed.includes(i))s.progress[i]=100;
     }
     for(const key of ['muted','reduced','timer','tutorialComplete'] as const)s[key]=raw[key]===true;
