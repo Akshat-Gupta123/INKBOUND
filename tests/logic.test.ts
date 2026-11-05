@@ -1,17 +1,45 @@
 import { describe, it, expect } from 'vitest';
-import { levels, availableTools, gestureValid } from '../src/levels';
+import { levels, tutorialLevel, difficulties, availableTools, gestureValid } from '../src/levels';
 
-describe('the twelve-stage action campaign', () => {
-  it('has four distinct chapters, valid exits, par times and three fragments per stage', () => {
-    expect(levels).toHaveLength(12);
-    for (let chapter = 0; chapter < 4; chapter++) expect(levels.filter(l => l.chapter === chapter)).toHaveLength(3);
-    expect(new Set(levels.map(l => JSON.stringify(l.platforms))).size).toBe(12);
+describe('the twenty-level arcade catalogue', () => {
+  it('has four levels per difficulty, unique themes and valid finish platforms', () => {
+    expect(levels).toHaveLength(20);
+    for (const difficulty of difficulties) expect(levels.filter(l => l.difficulty === difficulty)).toHaveLength(4);
+    expect(new Set(levels.map(l => l.color)).size).toBe(20);
+    expect(new Set(levels.map(l => l.name)).size).toBe(20);
+    expect(new Set(levels.map(l => JSON.stringify(l.platforms))).size).toBe(20);
     for (const level of levels) {
       expect(level.fragments).toHaveLength(3);
+      expect(level.color).toBeGreaterThan(0);
+      expect(level.color).toBeLessThanOrEqual(0xffffff);
+      expect(level.music).toBeGreaterThanOrEqual(0);
+      expect(level.music).toBeLessThan(4);
+      expect(level.gate).toBeUndefined();
+      expect(level.plate).toBeUndefined();
       expect(level.par).toBeGreaterThan(level.width / 540);
       expect(level.par).toBeLessThanOrEqual(40);
       expect(level.exit.x).toBeLessThan(level.width);
       expect(level.platforms.some(p => level.exit.x >= p.x && level.exit.x <= p.x + p.w && Math.abs(p.y - level.exit.y - 70) < 30), level.name).toBe(true);
+    }
+  });
+
+  it('provides a separate safe practice arena without changing ranked indices', () => {
+    expect(levels).not.toContain(tutorialLevel);
+    expect(tutorialLevel.name).toBe('Mechanics Lab');
+    expect(tutorialLevel.hazards).toHaveLength(0);
+    expect(tutorialLevel.platforms[0]).toMatchObject({x:0,w:1600,y:610});
+    expect(new Set(tutorialLevel.edits.map(d => d.tool)).size).toBe(3);
+    expect(tutorialLevel.sweepers[0]).toMatchObject({x:850,y:490,dx:160,period:4000});
+    expect(tutorialLevel.checkpoint.x).toBe(730);
+  });
+
+  it('gives Easy stages wider margins and slower, fewer moving threats', () => {
+    for(const level of levels.filter(l => l.difficulty === 'Easy')) {
+      expect(level.sweepers.length).toBeLessThanOrEqual(1);
+      expect(level.sweepers.every(s => s.period >= 3000)).toBe(true);
+      expect(level.hazards.length).toBeLessThanOrEqual(1);
+      expect(level.hazards.every(h => h.w <= 65)).toBe(true);
+      expect(level.platforms.filter(p => p.y === 610).every(p => p.w >= 500)).toBe(true);
     }
   });
 

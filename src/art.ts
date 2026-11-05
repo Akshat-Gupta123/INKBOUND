@@ -66,6 +66,8 @@ function gear(s: Phaser.Scene, x: number, y: number, radius: number, color: numb
 
 export function scenery(s: Phaser.Scene, width: number, color: number, chapter: number) {
   s.add.tileSprite(0, 0, width, 760, 'paper').setOrigin(0);
+  s.add.rectangle(0, 0, width, 760, color, .16).setOrigin(0);
+  s.add.ellipse(width * .3, 340, 1500, 900, color, .045).setScrollFactor(.4, 1);
   const back = s.add.graphics().setScrollFactor(.28, 1);
   back.lineStyle(1, color, .035);
   for (let y = 110; y < 720; y += 50) back.lineBetween(0, y, width, y);

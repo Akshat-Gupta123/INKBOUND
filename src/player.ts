@@ -21,6 +21,7 @@ export class Player {
   isDashing = false;
   dashCooldown = 0;
   dashCount = 0;
+  launchCount = 0;
   private dashRemaining = 0;
   private dashVector = new Phaser.Math.Vector2(1, 0);
   private facing = 1;
@@ -137,6 +138,7 @@ export class Player {
 
   /** Called by a drawn Arrow to preserve its impulse through movement updates. */
   launch(vx: number, vy: number, duration = 180) {
+    this.launchCount++;
     this.isDashing = false;
     this.dashRemaining = 0;
     this.launchRemaining = Math.max(0, duration);
