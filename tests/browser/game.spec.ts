@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { levels } from '../../src/levels';
+import { levels, difficulties, levelOrder } from '../../src/levels';
 async function scene(page:Page,fn:string,arg?:unknown){return page.evaluate(({fn,arg})=>new Function('s','arg',fn)((window as any).inkbound.scene.getScene('Book'),arg),{fn,arg});}
 async function start(page:Page,index=0){await page.goto('./');await page.locator(`.level-button[data-level-index="${index}"]`).click();await page.locator('#play-level').click();await expect(page.locator('.hud h3')).toHaveText(levels[index].name);}
 async function worldPoint(page:Page,x:number,y:number){return page.evaluate(({x,y})=>{const c=(window as any).inkbound.scene.getScene('Book').cameras.main,r=document.querySelector('canvas')!.getBoundingClientRect();return {x:r.x+(x-c.scrollX)*r.width/1280,y:r.y+(y-c.scrollY)*r.height/720};},{x,y});}
@@ -21,7 +21,7 @@ test('mouse-drawn slope has real collision, expires, and ink regenerates',async(
  await scene(page,'s.player.teleport(440,300)');await expect.poll(()=>scene(page,'return Math.round(s.player.sprite.body.bottom)'),{intervals:[30]}).toBe(400);
  expect(await scene(page,'return s.player.sprite.body.blocked.down')).toBe(true);
  await expect.poll(()=>scene(page,'return s.liveInk.drawings.length'),{timeout:5000}).toBe(0);
- await expect.poll(()=>scene(page,'return s.ink')).toBe(3);
+ await expect.poll(()=>scene(page,'return s.ink')).toBe(6);
 });
 
 test('a free Arrow launches the player and a Loop actually freezes moving threats',async({page})=>{
@@ -35,9 +35,9 @@ test('a free Arrow launches the player and a Loop actually freezes moving threat
 
 test('saws punish contact, fast respawns refill ink, dash breaks a saw',async({page})=>{
  await start(page);await scene(page,'const z=s.sweepers[0];s.player.teleport(z.x,z.y);');await expect.poll(()=>scene(page,'return s.runDeaths')).toBe(1);
- expect(await scene(page,'return s.player.sprite.x')).toBeLessThan(200);expect(await scene(page,'return s.ink')).toBe(3);
+ expect(await scene(page,'return s.player.sprite.x')).toBeLessThan(200);expect(await scene(page,'return s.ink')).toBe(6);
  await page.waitForTimeout(480);await scene(page,'const z=s.sweepers[0];s.player.teleport(z.x,z.y);');await page.keyboard.down('Shift');
- await expect.poll(()=>scene(page,'return s.sweepers[0].disabled'),{intervals:[10]}).toBeGreaterThan(250);await page.keyboard.up('Shift');
+ await expect.poll(()=>scene(page,'return s.sweepers[0].disabled'),{intervals:[10]}).toBeGreaterThan(1400);await page.keyboard.up('Shift');
  await page.keyboard.press('r');expect(await scene(page,'return s.liveInk.drawings.length')).toBe(0);
 });
 
@@ -53,31 +53,40 @@ test('all twenty independent levels finish and save without story screens',async
  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).completed.length)).toBe(20);await page.reload();expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).completed.length)).toBe(20);expect(errors).toEqual([]);
 });
 
-test('opening carousel has no tiers, keeps all twenty courses and supports keyboard browsing',async({page})=>{
+test('opening carousel sorts all twenty levels by difficulty with distinct themes and keyboard browsing',async({page})=>{
  await page.goto('./');await expect(page.locator('#level-card')).toHaveAttribute('data-level-index','-1');await expect(page.locator('.level-button')).toHaveCount(20);
- await page.keyboard.press('ArrowRight');await expect(page.locator('#level-card')).toHaveAttribute('data-level-index','0');
- await expect(page.locator('.run-badge')).toHaveText('ONE RUN');await expect(page.locator('.run-rules')).toContainText('NO CHECKPOINTS');
- for(const name of ['Easy','Normal','Hard','Insane','Extreme','All'])await expect(page.getByRole('button',{name,exact:true})).toHaveCount(0);
+ await page.keyboard.press('ArrowRight');await expect(page.locator('#level-card')).toHaveAttribute('data-level-index',String(levelOrder[0]));
+ await expect(page.locator('.difficulty-badge')).toHaveText('EASY');await expect(page.locator('.run-rules')).toContainText('CHECKPOINT RETRIES');
  const color=await page.locator('#level-card').evaluate(el=>(el as HTMLElement).style.getPropertyValue('--card-color'));
  await page.getByRole('button',{name:'Next level',exact:true}).click();expect(await page.locator('#level-card').evaluate(el=>(el as HTMLElement).style.getPropertyValue('--card-color'))).not.toBe(color);
+ for(const difficulty of difficulties){
+  await page.getByRole('button',{name:difficulty,exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(4);
+  await expect(page.locator('.difficulty-badge')).toHaveText(difficulty.toUpperCase());
+  const index=Number(await page.locator('#level-card').getAttribute('data-level-index'));expect(levels[index].difficulty).toBe(difficulty);
+ }
+ await page.getByRole('button',{name:'All',exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(20);
  await page.locator('.level-button[data-level-index="12"]').click();await page.locator('#play-level').click();await expect(page.locator('.hud h3')).toHaveText(levels[12].name);
- expect(await page.evaluate(()=>document.documentElement.style.getPropertyValue('--level-color'))).toBe('#'+levels[12].color.toString(16));
- await expect(page.locator('.hud .eyebrow')).toContainText('ONE RUN');
+ expect(await page.evaluate(()=>document.documentElement.style.getPropertyValue('--level-color'))).toBe('#'+levels[12].color.toString(16).padStart(6,'0'));
+ await expect(page.locator('.hud .eyebrow')).toContainText('EASY');
 });
 
-test('full-run deaths and manual retries reset machinery and saw cycles to the start',async({page})=>{
+test('Overdrive checkpoint retries preserve the timer and refill six ink charges',async({page})=>{
  await start(page,12);
- await scene(page,'const p=s.level.platforms[6];s.player.teleport(p.x+p.w/2,p.y-29);s.activate(s.drawings[4]);s.sweepers[4].disabled=300;');
- expect(await scene(page,'return s.checkpointLit')).toBe(false);
+ await scene(page,'s.player.teleport(s.level.checkpoint.x,s.level.checkpoint.y-10);');
+ await expect.poll(()=>scene(page,'return s.checkpointLit')).toBe(true);
+ await scene(page,'s.activate(s.drawings[0]);s.drawFree("stroke",[{x:s.player.sprite.x,y:400}]);');
+ const elapsed=await scene(page,'return s.elapsed');
  await page.keyboard.press('r');
- expect(await scene(page,'return s.player.sprite.x')).toBe(130);expect(await scene(page,'return s.drawings.some(d=>d.active)')).toBe(false);expect(await scene(page,'return s.sweepers.some(z=>z.disabled>0)')).toBe(false);
- expect(await scene(page,'return s.elapsed')).toBeLessThan(300);expect(await scene(page,'return s.ink')).toBe(3);
- await page.waitForTimeout(150);await scene(page,'s.player.teleport(s.level.width/2,680)');await expect.poll(()=>scene(page,'return s.runDeaths')).toBe(1);
- expect(await scene(page,'return s.player.sprite.x')).toBe(130);expect(await scene(page,'return s.ink')).toBe(3);
- expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).progress[12])).toBeGreaterThan(40);
- // The new finite ink budget and all three short lifetimes apply in an actual scene.
- const limits=await scene(page,'s.drawFree("stroke",[{x:190,y:350}]);s.drawFree("arrow",[{x:190,y:300}]);s.drawFree("loop",[{x:190,y:220}]);return {life:s.liveInk.drawings.map(d=>d.plan.lifetime),fourth:s.drawFree("stroke",[{x:210,y:350}])};');
- expect(limits).toEqual({life:[1100,1000,700],fourth:false});
+ expect(await scene(page,'return s.player.sprite.x')).toBe(levels[12].checkpoint.x);
+ expect(await scene(page,'return s.drawings.some(d=>d.active)')).toBe(false);expect(await scene(page,'return s.liveInk.drawings.length')).toBe(0);
+ expect(await scene(page,'return s.elapsed')).toBeGreaterThanOrEqual(elapsed);expect(await scene(page,'return s.ink')).toBe(6);
+ await page.waitForTimeout(480);
+ await scene(page,'const z=s.sweepers[0];s.player.teleport(z.x,z.y);');await expect.poll(()=>scene(page,'return s.runDeaths')).toBe(1);
+ expect(await scene(page,'return s.player.sprite.x')).toBe(levels[12].checkpoint.x);expect(await scene(page,'return s.ink')).toBe(6);
+ expect(await scene(page,'return s.elapsed')).toBeGreaterThan(elapsed);
+ // All three live tools use the original durations; six charges can sustain five sketches.
+ const limits=await scene(page,'const x=s.player.sprite.x;s.drawFree("stroke",[{x,y:350}]);s.drawFree("arrow",[{x,y:300}]);s.drawFree("loop",[{x,y:220}]);const life=s.liveInk.drawings.map(d=>d.plan.lifetime);const more=[s.drawFree("stroke",[{x:x+20,y:350}]),s.drawFree("stroke",[{x:x+40,y:350}]),s.drawFree("stroke",[{x:x+60,y:350}])];return {life,more,count:s.liveInk.drawings.length,seventh:s.drawFree("stroke",[{x:x+80,y:350}])};');
+ expect(limits).toEqual({life:[3600,4300,3000],more:[true,true,true],count:5,seventh:false});
 });
 
 test('hands-on tutorial requires every mechanic and persists its completion',async({page})=>{
@@ -94,7 +103,7 @@ test('hands-on tutorial requires every mechanic and persists its completion',asy
  await scene(page,'s.player.teleport(360,550)');await expect.poll(()=>scene(page,'return s.found.size')).toBeGreaterThan(0);await scene(page,'s.player.teleport(730,550)');await expect.poll(()=>scene(page,'return s.checkpointLit')).toBe(true);await page.keyboard.press('r');await next();
  await page.keyboard.down('d');await expect(page.getByText('READY TO RUN',{exact:true})).toBeVisible({timeout:6000});await page.keyboard.up('d');
  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).tutorialComplete)).toBe(true);expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).completed)).toEqual([]);
- await page.getByRole('button',{name:'Choose a level →'}).click();await expect(page.locator('#level-card')).toHaveAttribute('data-level-index','0');await page.reload();await expect(page.locator('#level-card')).toHaveAttribute('data-level-index','0');expect(errors).toEqual([]);
+ await page.getByRole('button',{name:'Choose a level →'}).click();await expect(page.locator('#level-card')).toHaveAttribute('data-level-index',String(levelOrder[0]));await page.reload();await expect(page.locator('#level-card')).toHaveAttribute('data-level-index',String(levelOrder[0]));expect(errors).toEqual([]);
 });
 
 test('music schedules notes, pauses correctly, and independent volume settings persist',async({page})=>{

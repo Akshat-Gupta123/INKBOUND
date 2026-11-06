@@ -69,7 +69,7 @@ export class Book extends Phaser.Scene {
  for(const d of l.edits){const body=this.physics.add.image(d.x+d.w/2,d.y+d.h/2,'dot').setVisible(false).setDisplaySize(d.w,d.h);body.setImmovable(true);body.body!.setAllowGravity(false);body.body!.setSize(8,8);body.body!.enable=d.tool!=='stroke';body.setData('oneway',true);const drawing:Drawing={def:d,body,art:this.add.graphics().setDepth(3),label:this.add.text(d.x+d.w/2,d.y-25,'',{fontFamily:'Georgia',fontSize:'14px',color:'#ccd2c9'}).setOrigin(.5),active:false,elapsed:0,sign:1,fromX:body.x,fromY:body.y,toX:body.x+(d.dx??0),toY:body.y+(d.dy??0)};this.drawings.push(drawing);this.physics.add.collider(this.player.sprite,body);}
  if(l.gate){this.gate=this.physics.add.staticImage(l.gate.x+l.gate.w/2,l.gate.y+l.gate.h/2,'dot').setVisible(false).setDisplaySize(l.gate.w,l.gate.h).refreshBody();this.physics.add.collider(this.player.sprite,this.gate);this.gateArt=this.add.graphics();hatch(this.gateArt,l.gate.x,l.gate.y,l.gate.w,l.gate.h,0xb48641);this.add.text(l.gate.x-18,l.gate.y-35,'✦',{fontSize:'28px',color:'#a57f36'});}
  if(l.plate){this.plateArt=this.add.graphics();this.plateArt.fillStyle(0xb49251).fillRect(l.plate.x,l.plate.y,l.plate.w,l.plate.h);this.add.text(l.plate.x-10,l.plate.y-32,'PRESSURE PLATE',{fontFamily:'monospace',fontSize:'10px',color:'#887248'});}
- if(l.checkpoint){this.checkpointArt=this.add.graphics();this.renderWell(false);this.add.text(l.checkpoint.x-35,l.checkpoint.y+13,'PRACTICE CHECKPOINT',{fontFamily:'monospace',fontSize:'10px',color:'#ccd2c9'});}
+ if(l.checkpoint){this.checkpointArt=this.add.graphics();this.renderWell(false);this.add.text(l.checkpoint.x-35,l.checkpoint.y+13,'CHECKPOINT',{fontFamily:'monospace',fontSize:'10px',color:'#ccd2c9'});}
  l.fragments.forEach((f,i)=>{const diamond=this.add.graphics();diamond.fillStyle(color).fillTriangle(0,-12,8,0,0,12).fillTriangle(0,-12,-8,0,0,12).lineStyle(1,ink).strokePoints([new Phaser.Math.Vector2(0,-12),new Phaser.Math.Vector2(8,0),new Phaser.Math.Vector2(0,12),new Phaser.Math.Vector2(-8,0)],true);const c=this.add.container(f.x,f.y,[diamond]).setDepth(5).setAlpha(this.found.has(i)?.22:1);this.fragments.push(c);});
  const door=this.add.graphics().setDepth(2);door.fillStyle(color,.2);door.fillRoundedRect(l.exit.x-27,l.exit.y-3,55,77,5);door.lineStyle(3,ink);door.strokeRoundedRect(l.exit.x-27,l.exit.y-3,55,77,5);door.lineStyle(1,ink);door.lineBetween(l.exit.x-25,l.exit.y,l.exit.x+10,l.exit.y+12);door.lineBetween(l.exit.x+10,l.exit.y+12,l.exit.x+10,l.exit.y+72);this.add.text(l.exit.x,l.exit.y-26,'FINISH →',{fontFamily:'monospace',fontSize:'11px',color:'#d8ed62'}).setOrigin(.5);
  // Optional high routes are marked as cache locations, with no dialogue interruption.
@@ -104,7 +104,7 @@ export class Book extends Phaser.Scene {
  d.label.setPosition(x+w/2,y-19).setText(d.active?(d.def.duration?`${Math.ceil((d.def.duration-d.elapsed)/1000)}s`:''):(this.sketch?`${d.def.tool.toUpperCase()} · 1 INK`:d.def.tool==='stroke'?'INK TARGET':d.def.tool==='arrow'?'→':'↻')).setAlpha(this.sketch?1:.6);
  }
  syncSketch(){this.physics.world.timeScale=1;this.selected=undefined;this.drawingGesture=false;this.gesture.clear();this.refreshDrawings();this.hud();}
- hud(){if(this.paused||this.finished)return;const l=this.level;ui.innerHTML=`<div class="hud"><div class="hud-top"><button class="back-book" aria-label="Pause">☰</button><div><span class="eyebrow">${this.isTutorial?'GUIDED PRACTICE':'ONE RUN / LEVEL '+String(levelOrder.indexOf(this.index)+1).padStart(2,'0')}</span><h3>${l.name}</h3></div><div class="hud-right"><span class="fragments">✦ ${this.found.size}/3</span><span id="dash-meter">SHIFT · DASH</span><span id="death-meter">${this.runDeaths} FAILS</span><span id="run-progress">0%</span><span id="timer">${formatTime(this.elapsed)}</span><button id="mute" aria-label="Mute sound">${save.muted?'♪ OFF':'♪ ON'}</button></div></div><div class="page-objective"><span>↗ ${l.goal}</span></div><div class="hud-bottom"><div class="ink-counter"><small>INK / REGENERATING</small><div id="ink-cells">${Array.from({length:this.maxInk},(_,i)=>`<b class="${i<this.ink?'full':''}">♦</b>`).join('')}</div></div><div class="tools">${(['stroke','arrow','loop'] as Tool[]).map((t,i)=>`<button data-tool="${t}" class="tool ${this.tool===t?'selected':''}" ${!availableTools(this.index).includes(t)?'disabled':''}><kbd>${i+1}</kbd> ${t==='stroke'?'╱':t==='arrow'?'↗':'↻'} ${t.toUpperCase()}</button>`).join('')}</div><button id="sketch" class="${this.sketch?'active primary':''}"><kbd>E</kbd> ${this.sketch?'Hide guides':'Show guides'}</button><button id="reset" title="Restart run">↶ <kbd>R</kbd></button></div><div class="tutorial">${l.note}</div><div class="toast" id="toast" role="status"></div></div>`;
+ hud(){if(this.paused||this.finished)return;const l=this.level;ui.innerHTML=`<div class="hud"><div class="hud-top"><button class="back-book" aria-label="Pause">☰</button><div><span class="eyebrow">${this.isTutorial?'GUIDED PRACTICE':l.difficulty.toUpperCase()+' / LEVEL '+String(levelOrder.indexOf(this.index)+1).padStart(2,'0')}</span><h3>${l.name}</h3></div><div class="hud-right"><span class="fragments">✦ ${this.found.size}/3</span><span id="dash-meter">SHIFT · DASH</span><span id="death-meter">${this.runDeaths} FAILS</span><span id="run-progress">0%</span><span id="timer">${formatTime(this.elapsed)}</span><button id="mute" aria-label="Mute sound">${save.muted?'♪ OFF':'♪ ON'}</button></div></div><div class="page-objective"><span>↗ ${l.goal}</span></div><div class="hud-bottom"><div class="ink-counter"><small>INK / REGENERATING</small><div id="ink-cells">${Array.from({length:this.maxInk},(_,i)=>`<b class="${i<this.ink?'full':''}">♦</b>`).join('')}</div></div><div class="tools">${(['stroke','arrow','loop'] as Tool[]).map((t,i)=>`<button data-tool="${t}" class="tool ${this.tool===t?'selected':''}" ${!availableTools(this.index).includes(t)?'disabled':''}><kbd>${i+1}</kbd> ${t==='stroke'?'╱':t==='arrow'?'↗':'↻'} ${t.toUpperCase()}</button>`).join('')}</div><button id="sketch" class="${this.sketch?'active primary':''}"><kbd>E</kbd> ${this.sketch?'Hide guides':'Show guides'}</button><button id="reset" title="Instant restart at checkpoint">↶ <kbd>R</kbd></button></div><div class="tutorial">${l.note}</div><div class="toast" id="toast" role="status"></div></div>`;
  ui.querySelector('.back-book')!.addEventListener('click',()=>this.pause());ui.querySelector('#sketch')!.addEventListener('click',()=>{this.sketch=!this.sketch;this.syncSketch();});ui.querySelector('#reset')!.addEventListener('click',()=>this.reset());ui.querySelector('#mute')!.addEventListener('click',()=>{sound.mute();this.hud();});ui.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach(b=>b.onclick=()=>{this.tool=b.dataset.tool as Tool;this.refreshDrawings();this.hud();});this.updateToast();this.tutorial?.render();}
  message(text:string,duration=4000){this.status=text;this.statusUntil=this.time.now+duration;this.updateToast();}
  updateToast(){const t=ui.querySelector('#toast');if(t){t.textContent=this.status;t.classList.toggle('visible',this.time.now<this.statusUntil);}}
@@ -120,32 +120,32 @@ export class Book extends Phaser.Scene {
   if(this.finished||this.time.now<this.respawnSafeUntil)return;
   if(!this.isTutorial){this.runDeaths++;save.deaths++;persist();}sound.play('death');this.burst(this.player.sprite.x,this.player.sprite.y,0xff604d);
   if(!this.isTutorial){const reached=Math.min(99,Math.max(0,Math.floor((this.player.sprite.x-130)/(this.level.exit.x-130)*100)));save.progress[this.index]=Math.max(save.progress[this.index]??0,reached);persist();}
-  this.reset(false);
+  this.liveInk?.clear();this.ink=this.maxInk;this.drawingGesture=false;this.gesture.clear();this.selected=undefined;
+  this.player.teleport(this.checkpoint.x,this.checkpoint.y-10);this.respawnSafeUntil=this.time.now+450;
   if(!save.reduced)this.cameras.main.shake(90,.003);this.updateMeters();
  }
- reset(countRequest=true){
-  if(countRequest)this.resetCount++;
-  if(!this.isTutorial)this.elapsed=0;
+ reset(){
+  this.resetCount++;
   this.ink=this.maxInk;this.plateOn=false;this.liveInk?.clear();this.drawingGesture=false;this.gesture.clear();
   for(const d of this.drawings){d.active=false;d.elapsed=0;d.fromX=d.def.x+d.def.w/2;d.fromY=d.def.y+d.def.h/2;d.toX=d.fromX+(d.def.dx??0);d.toY=d.fromY+(d.def.dy??0);d.body.body!.reset(d.fromX,d.fromY);d.body.body!.enable=d.art.visible&&d.def.tool!=='stroke';}
   if(this.gate){this.gate.body!.enable=true;this.gateArt?.setVisible(true);}
-  for(const saw of this.sweepers){saw.elapsed=0;saw.disabled=0;saw.frozen=false;saw.x=saw.def.x;saw.y=saw.def.y;}
-  this.player.teleport(this.checkpoint.x,this.checkpoint.y-10);this.respawnSafeUntil=this.time.now+(this.isTutorial?450:120);this.refreshDrawings();this.hud();
+  this.selected=undefined;
+  this.player.teleport(this.checkpoint.x,this.checkpoint.y-10);this.respawnSafeUntil=this.time.now+450;this.refreshDrawings();this.hud();
  }
- pause(){if(this.finished||this.paused)return;this.paused=true;this.physics.pause();sound.setContext('paused');this.player.sprite.setAccelerationX(0);const a=modal('RUN PAUSED',this.level.subtitle);ui.querySelector('.sheet')!.classList.add('pause-sheet');a.append(button('Resume run',()=>this.resume(),'primary'),button(this.isTutorial?'Restart checkpoint':'Restart run',()=>{this.resume();this.reset();}),button('Settings & controls',()=>settings(()=>{this.paused=false;this.pause();})),button('Select stage',()=>{selection(n=>this.start(n));}),button('Main menu',()=>menu(n=>this.start(n))));}
+ pause(){if(this.finished||this.paused)return;this.paused=true;this.physics.pause();sound.setContext('paused');this.player.sprite.setAccelerationX(0);const a=modal('RUN PAUSED',this.level.subtitle);ui.querySelector('.sheet')!.classList.add('pause-sheet');a.append(button('Resume run',()=>this.resume(),'primary'),button('Restart checkpoint',()=>{this.resume();this.reset();}),button('Settings & controls',()=>settings(()=>{this.paused=false;this.pause();})),button('Select stage',()=>{selection(n=>this.start(n));}),button('Main menu',()=>menu(n=>this.start(n))));}
  resume(){sound.setContext('game',this.level.music);this.paused=false;this.input.keyboard?.resetKeys();this.physics.resume();this.hud();}
  finish(){
   if(this.finished)return;
   if(this.isTutorial&&this.tutorial?.step!==tutorialSteps.length-1){this.message('Complete the current practice lesson first.',1400);return;}
   this.finished=true;this.paused=true;this.physics.pause();sound.setContext('paused');sound.play('complete');
   if(this.isTutorial){
-    save.tutorialComplete=true;save.current=0;persist();
-    const a=modal('READY TO RUN','All mechanics learned: movement, dash, live ink, machinery, checkpoints and resets.<br>Regular courses have no checkpoints and much shorter ink timers. Clear one in a single run.');
+    save.tutorialComplete=true;save.current=levelOrder[0];persist();
+    const a=modal('READY TO RUN','All mechanics learned: movement, dash, live ink, machinery, checkpoints and resets.<br>Choose a level and set your own pace.');
     a.append(button('Choose a level →',()=>selection(n=>this.start(n),save.current),'primary'),button('Practice again',()=>this.start(-1)));return;
   }
   complete(this.index,this.elapsed,[...this.found]);
   const seconds=this.elapsed/1000,par=this.level.par,rank=seconds<=par&&this.runDeaths===0?'S':seconds<=par*1.4&&this.runDeaths<=2?'A':seconds<=par*2?'B':'C';
-  const a=modal('LEVEL COMPLETE',`<span class="completion-seal">${rank}</span><br>${this.level.name} · FULL RUN<br>${seconds.toFixed(2)}s / PAR ${par}s<br>${this.runDeaths} deaths · ${this.runEdits} sketches · ${this.found.size}/3 caches`);
+  const a=modal('LEVEL COMPLETE',`<span class="completion-seal">${rank}</span><br>${this.level.name} · ${this.level.difficulty}<br>${seconds.toFixed(2)}s / PAR ${par}s<br>${this.runDeaths} deaths · ${this.runEdits} sketches · ${this.found.size}/3 caches`);
   a.append(button('Level picker →',()=>selection(n=>this.start(n)),'primary'),button('Replay level',()=>this.start(this.index)));
  }
  updateSaws(dt:number){

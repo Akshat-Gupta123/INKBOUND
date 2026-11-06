@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { levels, tutorialLevel, levelOrder, availableTools, gestureValid } from '../src/levels';
+import { levels, levelOrder, tutorialLevel, difficulties, availableTools, gestureValid } from '../src/levels';
 
 describe('the twenty-level arcade catalogue', () => {
-  it('has twenty unclassified courses, unique themes and valid finish platforms', () => {
+  it('has four levels per difficulty, unique themes and valid finish platforms', () => {
     expect(levels).toHaveLength(20);
-    expect(levelOrder).toEqual(Array.from({length:20},(_,i)=>i));
-    expect(levels.every(l=>!('difficulty' in l))).toBe(true);
+    for (const difficulty of difficulties) expect(levels.filter(l => l.difficulty === difficulty)).toHaveLength(4);
     expect(new Set(levels.map(l => l.color)).size).toBe(20);
     expect(new Set(levels.map(l => l.name)).size).toBe(20);
     expect(new Set(levels.map(l => JSON.stringify(l.platforms))).size).toBe(20);
@@ -31,23 +30,36 @@ describe('the twenty-level arcade catalogue', () => {
     expect(tutorialLevel.platforms[0]).toMatchObject({x:0,w:1600,y:610});
     expect(new Set(tutorialLevel.edits.map(d => d.tool)).size).toBe(3);
     expect(tutorialLevel.sweepers[0]).toMatchObject({x:850,y:490,dx:160,period:4000});
-    expect(tutorialLevel.checkpoint!.x).toBe(730);
+    expect(tutorialLevel.checkpoint.x).toBe(730);
   });
 
-  it('makes every course a continuous precision gauntlet without checkpoints', () => {
-    for(const level of levels) {
-      expect(level.checkpoint).toBeUndefined();
-      expect(level.width).toBeGreaterThan(5000);
-      expect(level.sweepers.length).toBeGreaterThanOrEqual(28);
-      expect(level.sweepers.every(s=>s.period>=700&&s.period<=1200)).toBe(true);
-      const shelves=level.platforms.slice(1,-1);
-      expect(shelves.length).toBeGreaterThanOrEqual(11);
-      expect(shelves.every(p=>p.w>=36&&p.w<=52)).toBe(true);
-      expect(level.hazards.some(h=>h.w>level.width*.8)).toBe(true);
-      expect(level.edits.every(d=>d.w<=64&&d.duration!<=1150)).toBe(true);
-      for(const p of [...shelves,...level.edits]) {
-        expect(level.hazards.every(h=>p.x+p.w<=h.x||p.x>=h.x+h.w||p.y+p.h<=h.y||p.y-48>=h.y+h.h),level.name+' platform clearance').toBe(true);
-      }
+  it('orders the picker by difficulty while retaining saved level indices', () => {
+    expect(levelOrder).toEqual([12, 13, 14, 15, 16, 17, 18, 19, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(levels.slice(0, 12).map(level => level.name)).toEqual([
+      'Neon Rush', 'Vanishing Point', 'Vertical Voltage', 'Assembly Line',
+      'Kickback', 'Air Gap', 'Phase Lock', 'Cross Current',
+      'Whiteout', 'Crossfire', 'Scrap Circuit', 'Terminal Velocity',
+    ]);
+  });
+
+  it('gives Easy stages forgiving timing without removing gaps or moving threats', () => {
+    for(const level of levels.filter(l => l.difficulty === 'Easy')) {
+      expect(level.sweepers).toHaveLength(2);
+      expect(level.sweepers.every(s => s.period >= 2600 && s.r <= 22)).toBe(true);
+      expect(level.hazards).toHaveLength(2);
+      expect(level.hazards.every(h => h.w <= 65)).toBe(true);
+      expect(level.platforms.filter(p => p.y === 610).every(p => p.w >= 160 && p.w <= 460)).toBe(true);
+      expect(level.platforms.filter(p => p.y < 610).every(p => p.w >= 180)).toBe(true);
+    }
+  });
+
+  it('keeps the newer courses moving through varied heights and sketch opportunities', () => {
+    for (const level of levels.slice(12)) {
+      expect(new Set(level.platforms.map(p => p.y)).size, level.name).toBeGreaterThanOrEqual(3);
+      expect(level.hazards.length, level.name).toBeGreaterThanOrEqual(2);
+      expect(level.edits.length, level.name).toBeGreaterThanOrEqual(3);
+      expect(level.platforms[0].w, level.name).toBeLessThanOrEqual(460);
+      expect(level.platforms.filter(p => p.y === 610).every(p => p.w <= 460), level.name).toBe(true);
     }
   });
 
@@ -59,30 +71,32 @@ describe('the twenty-level arcade catalogue', () => {
         if (drawing.tool !== 'stroke') expect(Math.abs(drawing.dx ?? 0) + Math.abs(drawing.dy ?? 0)).toBeGreaterThan(0);
         expect(drawing.x).toBeGreaterThanOrEqual(0);
         expect(drawing.x + drawing.w + (drawing.dx ?? 0)).toBeLessThanOrEqual(level.width);
-        if (drawing.duration) expect(drawing.duration).toBeGreaterThanOrEqual(950);
+        if (drawing.duration) expect(drawing.duration).toBeGreaterThanOrEqual(2500);
       }
-      expect(level.edits.length).toBeLessThanOrEqual(13);
+      expect(level.edits.length).toBeLessThanOrEqual(6);
     });
   });
 
-  it('places moving threats on every stage and keeps spawn/finish positions out of their swept paths', () => {
+  it('places moving threats on every stage and keeps spawn/checkpoint positions out of their swept paths', () => {
     for (const level of levels) {
-      expect(level.sweepers.length).toBeGreaterThan(0);
+      expect(level.sweepers.length).toBeGreaterThanOrEqual(2);
       for (const saw of level.sweepers) {
-        expect(saw.period).toBeGreaterThanOrEqual(700);
+        expect(saw.period).toBeGreaterThanOrEqual(1200);
         expect(saw.r).toBeGreaterThanOrEqual(20);
         const dx = saw.dx ?? 0, dy = saw.dy ?? 0;
         expect(Math.hypot(dx, dy)).toBeGreaterThan(0);
         expect(saw.x + dx + saw.r).toBeLessThan(level.width);
-        for (const safe of [{ x: 130, y: 550 }, {x:level.exit.x,y:level.exit.y+30}]) {
+        for (const safe of [{ x: 130, y: 550 }, level.checkpoint]) {
           const t = Math.max(0, Math.min(1, ((safe.x - saw.x) * dx + (safe.y - saw.y) * dy) / (dx * dx + dy * dy)));
           const distance = Math.hypot(safe.x - saw.x - dx * t, safe.y - saw.y - dy * t);
           expect(distance, level.name + ' safe spawn').toBeGreaterThan(saw.r + 45);
         }
       }
-      for (const h of level.hazards) {
-        const checkpoint = {x:level.exit.x,y:level.exit.y+30};
-        expect(checkpoint.x + 17 < h.x || checkpoint.x - 17 > h.x + h.w || checkpoint.y + 29 < h.y || checkpoint.y - 19 > h.y + h.h, level.name + ' finish hazard').toBe(true);
+      for (const safe of [{ x: 130, y: 550 }, level.checkpoint]) {
+        expect(level.platforms.some(p => safe.x - 17 >= p.x && safe.x + 17 <= p.x + p.w && p.y >= safe.y + 29 && p.y - safe.y <= 70), level.name + ' stable respawn floor').toBe(true);
+        for (const h of level.hazards) {
+          expect(safe.x + 17 < h.x || safe.x - 17 > h.x + h.w || safe.y + 29 < h.y || safe.y - 19 > h.y + h.h, level.name + ' respawn hazard').toBe(true);
+        }
       }
     }
   });
@@ -99,7 +113,7 @@ describe('the twenty-level arcade catalogue', () => {
 // This guards authored geometry, not obstacle timing or complete playthroughs.
 // Rails connect both endpoints; regular jump arcs use the actual action movement envelope.
 describe('authored traversal envelope', () => {
-  it('connects the starting floor to every exit and optional fragment through the authored fading footholds', () => {
+  it('connects the starting floor to every exit and optional fragment without requiring freeform platforms', () => {
     for (const level of levels) {
       const nodes = level.platforms.map(p => ({ ...p, rail: '' }));
       for (const d of level.edits) {

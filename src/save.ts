@@ -4,29 +4,47 @@ export type Save = {
   progress:Record<string,number>; current:number; tutorialComplete:boolean;
   muted:boolean; volume:number; musicVolume:number; sfxVolume:number; reduced:boolean; timer:boolean; deaths:number; edits:number;
 };
-export const RULESET = 3;
+export const RULESET = 4;
 const defaults=():Save=>({ruleset:RULESET,completed:[],fragments:{},times:{},progress:{},current:0,tutorialComplete:false,muted:false,volume:.65,musicVolume:.45,sfxVolume:.7,reduced:false,timer:true,deaths:0,edits:0});
-const valid=(n:unknown)=>Number.isInteger(n)&&Number(n)>=0&&Number(n)<levels.length;
+const valid=(n:unknown):n is number=>Number.isInteger(n)&&Number(n)>=0&&Number(n)<levels.length;
+type StoredSave=Record<string,unknown>;
+const record=(value:unknown):StoredSave=>value!==null&&typeof value==='object'&&!Array.isArray(value)?value as StoredSave:{};
+function readStored(key:string):StoredSave {
+  try{return record(JSON.parse(localStorage.getItem(key)||'null'));}catch{return {};}
+}
+function mergeResults(s:Save,raw:StoredSave,keepTime:(index:number)=>boolean){
+  if(Array.isArray(raw.completed))s.completed=[...new Set([...s.completed,...raw.completed.filter(valid)])];
+  const fragments=record(raw.fragments),times=record(raw.times),progress=record(raw.progress);
+  for(let i=0;i<levels.length;i++){
+    const found=fragments[i],time=times[i],reached=progress[i];
+    if(Array.isArray(found))s.fragments[i]=[...new Set([...(s.fragments[i]??[]),...found.filter((n:unknown):n is number=>Number.isInteger(n)&&Number(n)>=0&&Number(n)<3)])];
+    if(keepTime(i)&&typeof time==='number'&&Number.isFinite(time)&&time>0)s.times[i]=Math.min(s.times[i]??Infinity,time);
+    if(typeof reached==='number'&&Number.isFinite(reached))s.progress[i]=Math.max(s.progress[i]??0,Math.min(100,Math.max(0,reached)));
+    if(s.completed.includes(i))s.progress[i]=100;
+  }
+}
 export function load():Save {
-  try {
-    const raw=JSON.parse(localStorage.getItem('inkbound-v1')||'null');if(!raw||typeof raw!=='object')return defaults();
-    const s=defaults(), compatible=raw.ruleset===RULESET;
-    // Entire courses changed. Archive old records instead of crediting old clears
-    // or destroying them; tutorial completion, preferences and lifetime stats remain.
-    if(!compatible){try{const archive='inkbound-archive-ruleset-'+(raw.ruleset===2?'2':'legacy');if(!localStorage.getItem(archive))localStorage.setItem(archive,JSON.stringify(raw));}catch{/* A full quota must not prevent play. */}}
-    s.completed=compatible&&Array.isArray(raw.completed)?[...new Set<number>(raw.completed.filter(valid))]:[];
-    s.current=valid(raw.current)?raw.current:0;
-    for(let i=0;i<levels.length;i++){
-      if(compatible&&Array.isArray(raw.fragments?.[i]))s.fragments[i]=[...new Set<number>(raw.fragments[i].filter((n:unknown)=>Number.isInteger(n)&&Number(n)>=0&&Number(n)<3))];
-      if(compatible&&Number.isFinite(raw.times?.[i])&&raw.times[i]>0)s.times[i]=raw.times[i];
-      if(compatible&&Number.isFinite(raw.progress?.[i]))s.progress[i]=Math.max(0,Math.min(100,raw.progress[i]));
-      if(s.completed.includes(i))s.progress[i]=100;
-    }
-    for(const key of ['muted','reduced','timer','tutorialComplete'] as const)s[key]=raw[key]===true;
-    for(const key of ['volume','musicVolume','sfxVolume'] as const)if(Number.isFinite(raw[key]))s[key]=Math.max(0,Math.min(1,raw[key]));
-    for(const key of ['deaths','edits'] as const)s[key]=Number.isFinite(raw[key])?Math.max(0,Math.floor(raw[key])):0;
-    return s;
-  }catch{return defaults();}
+  const raw=readStored('inkbound-v1'),s=defaults();
+  if(!Object.keys(raw).length)return s;
+  if(raw.ruleset!==RULESET){
+    // Keep the complete previous save once, including times for layouts that changed.
+    const version=Number.isInteger(raw.ruleset)&&Number(raw.ruleset)>=0?String(raw.ruleset):'legacy';
+    try{const archive='inkbound-archive-ruleset-'+version;if(!localStorage.getItem(archive))localStorage.setItem(archive,JSON.stringify(raw));}catch{/* A full quota must not prevent play. */}
+  }
+  if(raw.ruleset===3){
+    // The gauntlet update archived Overdrive results. Recover those original routes;
+    // current preferences and lifetime statistics still come from the latest save.
+    const overdrive=readStored('inkbound-archive-ruleset-2');
+    if(overdrive.ruleset===2)mergeResults(s,overdrive,i=>i<12);
+  }
+  // Keep earned clears/caches through layout changes, but compare only compatible times.
+  mergeResults(s,raw,i=>raw.ruleset===RULESET||(raw.ruleset===2&&i<12));
+  s.completed.sort((a,b)=>a-b);
+  s.current=valid(raw.current)?raw.current:0;
+  for(const key of ['muted','reduced','timer','tutorialComplete'] as const)if(typeof raw[key]==='boolean')s[key]=raw[key];
+  for(const key of ['volume','musicVolume','sfxVolume'] as const){const value=raw[key];if(typeof value==='number'&&Number.isFinite(value))s[key]=Math.max(0,Math.min(1,value));}
+  for(const key of ['deaths','edits'] as const){const value=raw[key];if(typeof value==='number'&&Number.isFinite(value))s[key]=Math.max(0,Math.floor(value));}
+  return s;
 }
 export let save=load();
 export function persist(){try{localStorage.setItem('inkbound-v1',JSON.stringify(save));}catch{/* Session play remains available if storage is restricted. */}}
