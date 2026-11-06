@@ -41,7 +41,7 @@ test('saws punish contact, fast respawns refill ink, dash breaks a saw',async({p
  await page.keyboard.press('r');expect(await scene(page,'return s.liveInk.drawings.length')).toBe(0);
 });
 
-test('all twenty independent levels finish and save without story screens',async({page})=>{
+test('all twenty-four independent levels finish and save without story screens',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await start(page);
  // Exit integration coverage deliberately positions the player; this is not an unassisted run.
  for(let i=0;i<levels.length;i++){
@@ -50,24 +50,36 @@ test('all twenty independent levels finish and save without story screens',async
   expect(await page.evaluate(()=>document.documentElement.style.getPropertyValue('--level-color'))).toBe('#'+levels[i].color.toString(16).padStart(6,'0'));
  }
  await page.getByRole('button',{name:'Level picker →'}).click();await expect(page.locator('.picker-screen')).toBeVisible();
- expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).completed.length)).toBe(20);await page.reload();expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).completed.length)).toBe(20);expect(errors).toEqual([]);
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).completed.length)).toBe(levels.length);await page.reload();expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).completed.length)).toBe(levels.length);expect(errors).toEqual([]);
 });
 
-test('opening carousel sorts all twenty levels by difficulty with distinct themes and keyboard browsing',async({page})=>{
- await page.goto('./');await expect(page.locator('#level-card')).toHaveAttribute('data-level-index','-1');await expect(page.locator('.level-button')).toHaveCount(20);
+test('opening carousel sorts all twenty-four levels in original order with distinct themes and keyboard browsing',async({page})=>{
+ await page.goto('./');await expect(page.locator('#level-card')).toHaveAttribute('data-level-index','-1');await expect(page.locator('.level-button')).toHaveCount(levels.length);
  await page.keyboard.press('ArrowRight');await expect(page.locator('#level-card')).toHaveAttribute('data-level-index',String(levelOrder[0]));
- await expect(page.locator('.difficulty-badge')).toHaveText('EASY');await expect(page.locator('.run-rules')).toContainText('CHECKPOINT RETRIES');
+ await expect(page.locator('.difficulty-badge')).toHaveText('HARD');await expect(page.locator('.run-rules')).toContainText('CHECKPOINT RETRIES');
  const color=await page.locator('#level-card').evaluate(el=>(el as HTMLElement).style.getPropertyValue('--card-color'));
  await page.getByRole('button',{name:'Next level',exact:true}).click();expect(await page.locator('#level-card').evaluate(el=>(el as HTMLElement).style.getPropertyValue('--card-color'))).not.toBe(color);
  for(const difficulty of difficulties){
-  await page.getByRole('button',{name:difficulty,exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(4);
+  await page.getByRole('button',{name:difficulty,exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(8);
   await expect(page.locator('.difficulty-badge')).toHaveText(difficulty.toUpperCase());
   const index=Number(await page.locator('#level-card').getAttribute('data-level-index'));expect(levels[index].difficulty).toBe(difficulty);
  }
- await page.getByRole('button',{name:'All',exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(20);
+ await page.getByRole('button',{name:'All',exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(levels.length);
+ for(const pack of ['Original 12','Remixes']) {
+  await page.getByRole('button',{name:pack,exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(12);
+  await expect(page.getByRole('button',{name:pack,exact:true})).toHaveAttribute('aria-pressed','true');
+  const ids=await page.locator('.level-button').evaluateAll(elements=>elements.map(el=>Number((el as HTMLElement).dataset.levelIndex)));
+  expect(ids.every(id=>pack==='Original 12'?id<12:id>=12)).toBe(true);
+  for(const difficulty of difficulties){await page.getByRole('button',{name:difficulty,exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(4);}
+  await page.getByRole('button',{name:'All',exact:true}).click();
+ }
+ await page.locator('.level-button[data-level-index="12"]').click();await expect(page.locator('.level-lineage')).toHaveText('Inspired by '+levels[0].name);
+ await page.getByRole('button',{name:'Tutorial',exact:true}).click();await expect(page.locator('#level-card')).toHaveAttribute('data-level-index','-1');await expect(page.locator('.level-button')).toHaveCount(levels.length);
+ await page.keyboard.press('ArrowRight');await expect(page.locator('#level-card')).toHaveAttribute('data-level-index','0');
+ await expect(page.locator('.stage-number')).toContainText('ORIGINAL');
  await page.locator('.level-button[data-level-index="12"]').click();await page.locator('#play-level').click();await expect(page.locator('.hud h3')).toHaveText(levels[12].name);
  expect(await page.evaluate(()=>document.documentElement.style.getPropertyValue('--level-color'))).toBe('#'+levels[12].color.toString(16).padStart(6,'0'));
- await expect(page.locator('.hud .eyebrow')).toContainText('EASY');
+ await expect(page.locator('.hud .eyebrow')).toContainText('HARD');
 });
 
 test('Overdrive checkpoint retries preserve the timer and refill six ink charges',async({page})=>{

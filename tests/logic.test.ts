@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { levels, levelOrder, tutorialLevel, difficulties, availableTools, gestureValid } from '../src/levels';
+import { levels, originalCount, levelOrder, tutorialLevel, difficulties, availableTools, gestureValid } from '../src/levels';
+import originals from './fixtures/overdrive-originals.json';
 
-describe('the twenty-level arcade catalogue', () => {
-  it('has four levels per difficulty, unique themes and valid finish platforms', () => {
-    expect(levels).toHaveLength(20);
-    for (const difficulty of difficulties) expect(levels.filter(l => l.difficulty === difficulty)).toHaveLength(4);
-    expect(new Set(levels.map(l => l.color)).size).toBe(20);
-    expect(new Set(levels.map(l => l.name)).size).toBe(20);
-    expect(new Set(levels.map(l => JSON.stringify(l.platforms))).size).toBe(20);
+describe('the original Overdrive courses and their remixes', () => {
+  it('has eight levels per difficulty, unique themes and valid finish platforms', () => {
+    expect(levels).toHaveLength(24);
+    for (const difficulty of difficulties) expect(levels.filter(l => l.difficulty === difficulty)).toHaveLength(8);
+    expect(new Set(levels.map(l => l.color)).size).toBe(24);
+    expect(new Set(levels.map(l => l.name)).size).toBe(24);
+    expect(new Set(levels.map(l => JSON.stringify(l.platforms))).size).toBe(24);
     for (const level of levels) {
       expect(level.fragments).toHaveLength(3);
       expect(level.color).toBeGreaterThan(0);
@@ -33,33 +34,37 @@ describe('the twenty-level arcade catalogue', () => {
     expect(tutorialLevel.checkpoint.x).toBe(730);
   });
 
-  it('orders the picker by difficulty while retaining saved level indices', () => {
-    expect(levelOrder).toEqual([12, 13, 14, 15, 16, 17, 18, 19, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
-    expect(levels.slice(0, 12).map(level => level.name)).toEqual([
-      'Neon Rush', 'Vanishing Point', 'Vertical Voltage', 'Assembly Line',
-      'Kickback', 'Air Gap', 'Phase Lock', 'Cross Current',
-      'Whiteout', 'Crossfire', 'Scrap Circuit', 'Terminal Velocity',
-    ]);
-  });
-
-  it('gives Easy stages forgiving timing without removing gaps or moving threats', () => {
-    for(const level of levels.filter(l => l.difficulty === 'Easy')) {
-      expect(level.sweepers).toHaveLength(2);
-      expect(level.sweepers.every(s => s.period >= 2600 && s.r <= 22)).toBe(true);
-      expect(level.hazards).toHaveLength(2);
-      expect(level.hazards.every(h => h.w <= 65)).toBe(true);
-      expect(level.platforms.filter(p => p.y === 610).every(p => p.w >= 160 && p.w <= 460)).toBe(true);
-      expect(level.platforms.filter(p => p.y < 610).every(p => p.w >= 180)).toBe(true);
+  it('preserves all twelve original layouts exactly, under new names', () => {
+    expect(originalCount).toBe(12);
+    expect(originals.commit).toBe('d6756a3');
+    expect(originals.levels).toHaveLength(originalCount);
+    for (const [index, original] of originals.levels.entries()) {
+      const {name, ...geometry} = original;
+      const restored = levels[index];
+      expect(restored.name).not.toBe(name);
+      expect(restored.source).toBeUndefined();
+      const actual = Object.fromEntries(Object.keys(geometry).map(key => [key, restored[key as keyof typeof restored]]));
+      expect(JSON.parse(JSON.stringify(actual)), restored.name + ' authentic layout').toEqual(geometry);
     }
+    expect(levelOrder).toEqual(Array.from({length:24}, (_,i) => i));
   });
 
-  it('keeps the newer courses moving through varied heights and sketch opportunities', () => {
-    for (const level of levels.slice(12)) {
-      expect(new Set(level.platforms.map(p => p.y)).size, level.name).toBeGreaterThanOrEqual(3);
-      expect(level.hazards.length, level.name).toBeGreaterThanOrEqual(2);
-      expect(level.edits.length, level.name).toBeGreaterThanOrEqual(3);
-      expect(level.platforms[0].w, level.name).toBeLessThanOrEqual(460);
-      expect(level.platforms.filter(p => p.y === 610).every(p => p.w <= 460), level.name).toBe(true);
+  it('gives every original a distinct, closely related remix with more hazard pressure', () => {
+    const remixes = levels.slice(originalCount);
+    expect(remixes).toHaveLength(12);
+    expect(remixes.map(l => l.source)).toEqual(Array.from({length:12}, (_,i) => i));
+    for(const level of remixes) {
+      const source = levels[level.source!];
+      expect(level.difficulty).toBe(source.difficulty);
+      expect(level.platforms).not.toEqual(source.platforms);
+      expect(level.platforms.length).toBe(source.platforms.length);
+      expect(level.edits.map(d => d.tool)).toEqual(source.edits.map(d => d.tool));
+      expect(level.sweepers.length).toBeGreaterThan(source.sweepers.length);
+      expect(level.hazards.length).toBeGreaterThanOrEqual(source.hazards.length);
+      expect(level.width).toBeGreaterThan(source.width);
+      expect(level.width).toBeLessThanOrEqual(source.width + 400);
+      expect(level.platforms[0].w).toBeLessThanOrEqual(source.platforms[0].w);
+      expect(new Set(level.platforms.map(p => p.y)).size).toBeGreaterThanOrEqual(3);
     }
   });
 

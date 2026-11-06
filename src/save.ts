@@ -1,10 +1,10 @@
-import { levels } from './levels';
+import { levels, originalCount } from './levels';
 export type Save = {
   ruleset:number; completed:number[]; fragments:Record<string,number[]>; times:Record<string,number>;
   progress:Record<string,number>; current:number; tutorialComplete:boolean;
   muted:boolean; volume:number; musicVolume:number; sfxVolume:number; reduced:boolean; timer:boolean; deaths:number; edits:number;
 };
-export const RULESET = 4;
+export const RULESET = 5;
 const defaults=():Save=>({ruleset:RULESET,completed:[],fragments:{},times:{},progress:{},current:0,tutorialComplete:false,muted:false,volume:.65,musicVolume:.45,sfxVolume:.7,reduced:false,timer:true,deaths:0,edits:0});
 const valid=(n:unknown):n is number=>Number.isInteger(n)&&Number(n)>=0&&Number(n)<levels.length;
 type StoredSave=Record<string,unknown>;
@@ -12,10 +12,11 @@ const record=(value:unknown):StoredSave=>value!==null&&typeof value==='object'&&
 function readStored(key:string):StoredSave {
   try{return record(JSON.parse(localStorage.getItem(key)||'null'));}catch{return {};}
 }
-function mergeResults(s:Save,raw:StoredSave,keepTime:(index:number)=>boolean){
-  if(Array.isArray(raw.completed))s.completed=[...new Set([...s.completed,...raw.completed.filter(valid)])];
+function mergeResults(s:Save,raw:StoredSave,keepResult:(index:number)=>boolean,keepTime:(index:number)=>boolean){
+  if(Array.isArray(raw.completed))s.completed=[...new Set([...s.completed,...raw.completed.filter(valid).filter(keepResult)])];
   const fragments=record(raw.fragments),times=record(raw.times),progress=record(raw.progress);
   for(let i=0;i<levels.length;i++){
+    if(!keepResult(i))continue;
     const found=fragments[i],time=times[i],reached=progress[i];
     if(Array.isArray(found))s.fragments[i]=[...new Set([...(s.fragments[i]??[]),...found.filter((n:unknown):n is number=>Number.isInteger(n)&&Number(n)>=0&&Number(n)<3)])];
     if(keepTime(i)&&typeof time==='number'&&Number.isFinite(time)&&time>0)s.times[i]=Math.min(s.times[i]??Infinity,time);
@@ -35,12 +36,14 @@ export function load():Save {
     // The gauntlet update archived Overdrive results. Recover those original routes;
     // current preferences and lifetime statistics still come from the latest save.
     const overdrive=readStored('inkbound-archive-ruleset-2');
-    if(overdrive.ruleset===2)mergeResults(s,overdrive,i=>i<12);
+    if(overdrive.ruleset===2)mergeResults(s,overdrive,i=>i<originalCount,()=>true);
   }
-  // Keep earned clears/caches through layout changes, but compare only compatible times.
-  mergeResults(s,raw,i=>raw.ruleset===RULESET||(raw.ruleset===2&&i<12));
+  // Renaming the original twelve leaves their records valid. The old easier courses
+  // now hold different remixes, so their results belong only in the previous archive.
+  const keepResult=(index:number)=>raw.ruleset===RULESET||index<originalCount;
+  mergeResults(s,raw,keepResult,()=>raw.ruleset===RULESET||raw.ruleset===4||raw.ruleset===2);
   s.completed.sort((a,b)=>a-b);
-  s.current=valid(raw.current)?raw.current:0;
+  s.current=valid(raw.current)&&keepResult(raw.current)?raw.current:0;
   for(const key of ['muted','reduced','timer','tutorialComplete'] as const)if(typeof raw[key]==='boolean')s[key]=raw[key];
   for(const key of ['volume','musicVolume','sfxVolume'] as const){const value=raw[key];if(typeof value==='number'&&Number.isFinite(value))s[key]=Math.max(0,Math.min(1,value));}
   for(const key of ['deaths','edits'] as const){const value=raw[key];if(typeof value==='number'&&Number.isFinite(value))s[key]=Math.max(0,Math.floor(value));}

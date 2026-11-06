@@ -1,6 +1,9 @@
+import { remixes } from './remixes';
+
 export type Tool = 'stroke' | 'arrow' | 'loop';
-export const difficulties = ['Easy', 'Normal', 'Hard', 'Insane', 'Extreme'] as const;
-export type Difficulty = typeof difficulties[number];
+export const difficulties = ['Hard', 'Insane', 'Extreme'] as const;
+export const originalCount = 12;
+export type Difficulty = typeof difficulties[number] | 'Practice';
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Edit = Rect & {
   id: string; tool: Tool; dx?: number; dy?: number; duration?: number; plate?: boolean;
@@ -17,6 +20,8 @@ export type Level = {
   name: string; chapter: number; subtitle: string; note: string; dialogue: string;
   goal: string; width: number; par: number;
   color: number; difficulty: Difficulty; music: number;
+  /** Original course index for a closely related remix. */
+  source?: number;
   platforms: Rect[]; edits: Edit[]; hazards: Rect[]; sweepers: Sweeper[];
   fragments: { x: number; y: number }[];
   checkpoint: { x: number; y: number }; exit: { x: number; y: number };
@@ -41,7 +46,7 @@ export const chapters = [
 
 export const levels: Level[] = [
   {
-    name: 'Neon Rush', color: 0xffd34e, difficulty: 'Hard', music: 1, chapter: 0, subtitle: 'No warm-up lap.', par: 20,
+    name: 'Live Wire', color: 0xffd34e, difficulty: 'Hard', music: 1, chapter: 0, subtitle: 'No warm-up lap.', par: 20,
     note: 'A/D move · Space jump · Shift dash · Drag to sketch while moving. Red ink kills. Dash through saws.',
     dialogue: 'MOVE. DRAW. DO NOT STOP.', goal: 'Clear the page. Beat 20 seconds.', width: 2500,
     platforms: [floor(0, 480), floor(830, 540), floor(1720, 780), ledge(330, 480, 100), ledge(710, 400, 120), ledge(1040, 440, 110), ledge(1450, 460, 130), ledge(1950, 430, 130)],
@@ -53,7 +58,7 @@ export const levels: Level[] = [
     secret: 'HIGH ROUTE // Fewer obstacles. Smaller landing zones.',
   },
   {
-    name: 'Vanishing Point', color: 0x52d8ff, difficulty: 'Hard', music: 0, chapter: 0, subtitle: 'Build your landing before you need it.', par: 23,
+    name: 'Ghostline', color: 0x52d8ff, difficulty: 'Hard', music: 0, chapter: 0, subtitle: 'Build your landing before you need it.', par: 23,
     note: 'Stroke [1] draws a temporary landing. Keep moving; ink regenerates. The blue bridge timer is real.',
     dialogue: 'NOTHING UNDER YOUR FEET? FIX THAT.', goal: 'Chain the fading platforms.', width: 2700,
     platforms: [floor(0, 430), floor(1070, 400), floor(2290, 410), ledge(780, 350, 120), ledge(1170, 420, 120), ledge(1970, 340, 120)],
@@ -65,7 +70,7 @@ export const levels: Level[] = [
     secret: 'A clean run is faster than a perfect drawing.',
   },
   {
-    name: 'Vertical Voltage', color: 0xff9857, difficulty: 'Hard', music: 2, chapter: 0, subtitle: 'Vertical pressure.', par: 25,
+    name: 'Skybreak', color: 0xff9857, difficulty: 'Hard', music: 2, chapter: 0, subtitle: 'Vertical pressure.', par: 25,
     note: 'Jump, sketch, land, dash. Up + Shift gives a vertical dash. Miss a step and reset instantly with R.',
     dialogue: 'GO UP. DO NOT HESITATE.', goal: 'Climb through the saw lanes.', width: 2700,
     platforms: [floor(0, 500), ledge(650, 470, 160), ledge(1110, 350, 180), ledge(1600, 240, 200), ledge(2060, 380, 180), floor(2350, 350)],
@@ -77,7 +82,7 @@ export const levels: Level[] = [
     secret: 'HEIGHT IS SPEED // Drop into the next jump.',
   },
   {
-    name: 'Assembly Line', color: 0xff6757, difficulty: 'Hard', music: 3, chapter: 1, subtitle: 'Production never stops.', par: 26,
+    name: 'Iron Pulse', color: 0xff6757, difficulty: 'Hard', music: 3, chapter: 1, subtitle: 'Production never stops.', par: 26,
     note: 'Arrow [2] launches you along a drawn direction. Click the outlined lifts to run their rails.',
     dialogue: 'THE FLOOR IS THE SLOW ROUTE.', goal: 'Use the lifts. Cut across the factory.', width: 2800,
     platforms: [floor(0, 480), floor(890, 360), floor(1790, 420), floor(2500, 300), ledge(650, 390, 170), ledge(1460, 330, 170), ledge(2110, 400, 140)],
@@ -89,7 +94,7 @@ export const levels: Level[] = [
     secret: 'FACTORY RECORD // Top route, no stops.',
   },
   {
-    name: 'Kickback', color: 0xff67aa, difficulty: 'Insane', music: 2, chapter: 1, subtitle: 'Turn momentum into a weapon.', par: 24,
+    name: 'Recoil', color: 0xff67aa, difficulty: 'Insane', music: 2, chapter: 1, subtitle: 'Turn momentum into a weapon.', par: 24,
     note: 'Launch through the gap. A dash destroys a moving saw temporarily. Spikes still kill you.',
     dialogue: 'HIT THE SAW BEFORE IT HITS YOU.', goal: 'Punch through the moving blockade.', width: 2900,
     platforms: [floor(0, 520), floor(880, 480), floor(1730, 450), floor(2520, 380), ledge(630, 420, 150), ledge(1140, 340, 150), ledge(1900, 390, 140)],
@@ -101,7 +106,7 @@ export const levels: Level[] = [
     secret: 'Dash into danger. Not into the floor.',
   },
   {
-    name: 'Air Gap', color: 0xb68cff, difficulty: 'Insane', music: 0, chapter: 1, subtitle: 'There is no bridge coming.', par: 27,
+    name: 'Dead Air', color: 0xb68cff, difficulty: 'Insane', music: 0, chapter: 1, subtitle: 'There is no bridge coming.', par: 27,
     note: 'Long gaps reward mid-air sketches. Draw a landing, recover your dash, then launch again.',
     dialogue: 'YOUR LINE IS THE ROUTE.', goal: 'Cross the canyon without losing momentum.', width: 3200,
     platforms: [floor(0, 470), floor(1230, 350), floor(2710, 490), ledge(680, 470, 100), ledge(960, 380, 100), ledge(1770, 480, 130), ledge(2120, 390, 130), ledge(2440, 490, 120)],
@@ -113,7 +118,7 @@ export const levels: Level[] = [
     secret: 'AIR ROUTE // The ground is optional.',
   },
   {
-    name: 'Phase Lock', color: 0x45e6d3, difficulty: 'Insane', music: 3, chapter: 2, subtitle: 'Read the cycle. Commit.', par: 25,
+    name: 'Pendulum', color: 0x45e6d3, difficulty: 'Insane', music: 3, chapter: 2, subtitle: 'Read the cycle. Commit.', par: 25,
     note: 'Loop [3] draws a stasis field around saws. Loop machines keep moving until reset.',
     dialogue: 'THE NEXT OPENING IS YOURS.', goal: 'Chain the ferries and break the saw rhythm.', width: 2800,
     platforms: [floor(0, 420), floor(1170, 350), floor(2390, 410), ledge(820, 380, 140), ledge(1780, 310, 140), ledge(2130, 420, 140)],
@@ -125,7 +130,7 @@ export const levels: Level[] = [
     secret: 'A loop gives you an opening. You still have to take it.',
   },
   {
-    name: 'Cross Current', color: 0x6f8cff, difficulty: 'Insane', music: 1, chapter: 2, subtitle: 'Three axes. No dead time.', par: 28,
+    name: 'Split Second', color: 0x6f8cff, difficulty: 'Insane', music: 1, chapter: 2, subtitle: 'Three axes. No dead time.', par: 28,
     note: 'The lifts move through danger. Sketch in the air, dash off early, and use a Loop to hold a safe window.',
     dialogue: 'ONE BAD LANDING IS ALL IT TAKES.', goal: 'Stay above the machinery.', width: 2900,
     platforms: [floor(0, 450), floor(1080, 340), floor(2470, 430), ledge(950, 360, 220), ledge(1810, 250, 130), ledge(2240, 390, 140)],
@@ -137,7 +142,7 @@ export const levels: Level[] = [
     secret: 'THE FAST LINE // Leave the lift before it stops.',
   },
   {
-    name: 'Whiteout', color: 0xb7e9ff, difficulty: 'Extreme', music: 0, chapter: 2, subtitle: 'Your route is already disappearing.', par: 26,
+    name: 'Flashpoint', color: 0xb7e9ff, difficulty: 'Extreme', music: 0, chapter: 2, subtitle: 'Your route is already disappearing.', par: 26,
     note: 'Outlined bridges expire in three seconds. Draw late, land clean, move immediately. R resets every timer.',
     dialogue: 'THREE SECONDS. MAKE THEM COUNT.', goal: 'Outrun the fading platforms.', width: 3200,
     platforms: [floor(0, 410), floor(1290, 360), floor(2790, 410), ledge(780, 350, 130), ledge(1400, 410, 130), ledge(2180, 360, 130)],
@@ -149,7 +154,7 @@ export const levels: Level[] = [
     secret: 'Nothing here is permanent. Including the obstacles.',
   },
   {
-    name: 'Crossfire', color: 0xe8ee55, difficulty: 'Extreme', music: 2, chapter: 3, subtitle: 'Use everything. Hesitate nowhere.', par: 29,
+    name: 'Collision Course', color: 0xe8ee55, difficulty: 'Extreme', music: 2, chapter: 3, subtitle: 'Use everything. Hesitate nowhere.', par: 29,
     note: 'Stroke a landing. Arrow a launch. Loop a saw. Swap tools with 1/2/3 without stopping.',
     dialogue: 'ONE RUN. THREE TOOLS.', goal: 'Break through the mixed gauntlet.', width: 3400,
     platforms: [floor(0, 460), floor(1120, 330), floor(2380, 440), floor(3090, 310), ledge(850, 400, 140), ledge(1810, 320, 150), ledge(2090, 410, 130), ledge(2680, 350, 140)],
@@ -161,7 +166,7 @@ export const levels: Level[] = [
     secret: 'The quickest route is the one you draw yourself.',
   },
   {
-    name: 'Scrap Circuit', color: 0xd66fff, difficulty: 'Extreme', music: 3, chapter: 3, subtitle: 'No room for a bad landing.', par: 32,
+    name: 'Razorworks', color: 0xd66fff, difficulty: 'Extreme', music: 3, chapter: 3, subtitle: 'No room for a bad landing.', par: 32,
     note: 'The upper route cuts across the workshop. The lower route has room to recover and worse saw lanes.',
     dialogue: '', goal: 'Cut through the scrap circuit.', width: 3600,
     platforms: [floor(0, 500), floor(1030, 360), floor(1960, 360), floor(3070, 530), ledge(580, 450, 150), ledge(860, 310, 160), ledge(1220, 490, 100), ledge(1370, 400, 140), ledge(1650, 280, 140), ledge(2320, 420, 140), ledge(2700, 300, 170)],
@@ -173,7 +178,7 @@ export const levels: Level[] = [
     secret: 'ARCHIVE // Every erased line left a mark.',
   },
   {
-    name: 'Terminal Velocity', color: 0xff4675, difficulty: 'Extreme', music: 1, chapter: 3, subtitle: 'Full speed. Full commitment.', par: 34,
+    name: 'Redline', color: 0xff4675, difficulty: 'Extreme', music: 1, chapter: 3, subtitle: 'Full speed. Full commitment.', par: 34,
     note: 'Every tool, every axis. Chain dashes through the saws. Keep a charge for the last gap.',
     dialogue: '', goal: 'Chain the launch pads. Reach the finish.', width: 3600,
     platforms: [floor(0, 420), floor(1110, 300), floor(2240, 340), floor(3220, 380), ledge(690, 420, 140), ledge(1540, 430, 130), ledge(1890, 310, 150), ledge(2720, 380, 140), ledge(3020, 460, 110)],
@@ -184,115 +189,12 @@ export const levels: Level[] = [
     checkpoint: { x: 1320, y: 570 }, exit: { x: 3490, y: 540 },
     secret: 'FINAL RECORD // No line left behind.',
   },
-  {
-    name: 'Afterglow', chapter: 0, color: 0x70ef99, difficulty: 'Easy', music: 0,
-    subtitle: 'Short gaps. Fast landings.', par: 18,
-    note: 'Keep your speed through the gaps. Sketch a landing or take the upper line for fragments.',
-    dialogue: '', goal: 'Link the gaps without losing pace.', width: 2200,
-    platforms: [floor(0, 430), floor(820, 380), floor(1450, 330), floor(1980, 220), ledge(550, 475, 180), ledge(1010, 440, 180), ledge(1580, 460, 180)],
-    edits: [stroke('glow-bridge', 440, 550, 180), rail('glow-lift', 'arrow', 1220, 560, 150, 0, -100), stroke('glow-finish', 1800, 535, 150)],
-    hazards: [teeth(920, 60), teeth(1530, 55)],
-    sweepers: [saw(660, 350, 0, 115, 3000, 20), saw(1820, 380, 120, 0, 2900, 21, .35)],
-    fragments: [{ x: 640, y: 420 }, { x: 1100, y: 385 }, { x: 1670, y: 405 }],
-    checkpoint: { x: 1100, y: 570 }, exit: { x: 2090, y: 540 },
-    secret: 'UPPER LINE // Turn each landing into the next jump.',
-  },
-  {
-    name: 'Blue Hour', chapter: 2, color: 0x4fafff, difficulty: 'Easy', music: 1,
-    subtitle: 'Cross the rhythm. Keep your momentum.', par: 20,
-    note: 'Loop a saw while moving, then dash to the next broad step. The shuttle offers a lower route.',
-    dialogue: '', goal: 'Chain the steps through both saw lanes.', width: 2300,
-    platforms: [floor(0, 440), floor(900, 440), floor(1650, 320), floor(2140, 160), ledge(570, 490, 210), ledge(950, 410, 230), ledge(1430, 460, 190), ledge(1840, 430, 180)],
-    edits: [stroke('blue-step', 450, 550, 130), rail('blue-shuttle', 'loop', 1360, 550, 170, 210), stroke('blue-exit', 1990, 540, 120)],
-    hazards: [teeth(1030, 55), teeth(1750, 55)],
-    sweepers: [saw(760, 390, 0, 100, 3200, 20), saw(1540, 350, 110, 0, 2900, 20, .4)],
-    fragments: [{ x: 675, y: 435 }, { x: 1070, y: 355 }, { x: 1930, y: 375 }],
-    checkpoint: { x: 1250, y: 570 }, exit: { x: 2190, y: 540 },
-    secret: 'CLOCK CHECK // A short Loop opens the next jump.',
-  },
-  {
-    name: 'Golden Track', chapter: 1, color: 0xffc27b, difficulty: 'Easy', music: 2,
-    subtitle: 'Launch, land, launch again.', par: 17,
-    note: 'Arrow [2] carries speed across the broken track. Draw the next foothold before you fall.',
-    dialogue: '', goal: 'Keep the sprint alive across four islands.', width: 2400,
-    platforms: [floor(0, 460), floor(860, 380), floor(1530, 370), floor(2180, 220), ledge(500, 480, 190), ledge(1000, 420, 190), ledge(1750, 460, 180)],
-    edits: [rail('gold-riser', 'arrow', 660, 560, 140, 180, -100), stroke('gold-span', 1270, 520, 180), stroke('gold-finish', 1940, 550, 180)],
-    hazards: [teeth(950, 60), teeth(1630, 65)],
-    sweepers: [saw(770, 380, 100, 0, 2800, 21), saw(2040, 410, 0, 100, 2700, 21, .45)],
-    fragments: [{ x: 590, y: 425 }, { x: 1090, y: 365 }, { x: 1840, y: 405 }],
-    checkpoint: { x: 1150, y: 570 }, exit: { x: 2290, y: 540 },
-    secret: 'CLEAN SPLIT // Carry the launch into your next jump.',
-  },
-  {
-    name: 'Springboard', chapter: 0, color: 0xa7ee72, difficulty: 'Easy', music: 3,
-    subtitle: 'Climb fast. Drop into the next jump.', par: 21,
-    note: 'The steps rise and fall. Dash off the lift or sketch a lower landing to keep your run moving.',
-    dialogue: '', goal: 'Flow over the two crests.', width: 2500,
-    platforms: [floor(0, 440), floor(1000, 430), floor(1740, 340), floor(2290, 210), ledge(480, 485, 190), ledge(760, 390, 180), ledge(1230, 450, 200), ledge(1560, 350, 180), ledge(1940, 440, 190)],
-    edits: [stroke('spring-step', 670, 500, 150), rail('spring-lift', 'arrow', 1450, 560, 140, 0, -140), stroke('spring-finish', 2110, 530, 140)],
-    hazards: [teeth(1090, 60), teeth(1820, 60)],
-    sweepers: [saw(900, 300, 0, 130, 3000, 20), saw(2130, 330, 100, 0, 2900, 20, .3)],
-    fragments: [{ x: 850, y: 335 }, { x: 1320, y: 395 }, { x: 2030, y: 385 }],
-    checkpoint: { x: 1330, y: 570 }, exit: { x: 2390, y: 540 },
-    secret: 'EXTRA HEIGHT // The drop sets up your next launch.',
-  },
-  {
-    name: 'Tidal Circuit', chapter: 2, color: 0x55c9ba, difficulty: 'Normal', music: 0,
-    subtitle: 'Three channels. One flowing run.', par: 23,
-    note: 'Dash off each ferry into the next jump. Loop the saw lane or sketch a shortcut while airborne.',
-    dialogue: '', goal: 'Cross the three channels.', width: 2800,
-    platforms: [floor(0, 460), floor(1040, 350), floor(1780, 390), floor(2530, 270), ledge(740, 430, 170), ledge(1200, 400, 160), ledge(1930, 380, 170)],
-    edits: [rail('tide-ferry-a', 'loop', 500, 550, 160, 280), stroke('tide-cut', 1420, 540, 190), rail('tide-ferry-b', 'loop', 2210, 550, 160, 150)],
-    hazards: [teeth(1140, 85), teeth(1900, 80)],
-    sweepers: [saw(800, 330, 0, 145, 2400, 23), saw(1660, 430, 120, 0, 2300, 23, .25), saw(2320, 390, 100, 0, 2200, 23, .4)],
-    fragments: [{ x: 825, y: 375 }, { x: 1280, y: 345 }, { x: 2020, y: 325 }],
-    checkpoint: { x: 1330, y: 570 }, exit: { x: 2690, y: 540 },
-    secret: 'TIDAL WINDOW // The ferry is an option, not a schedule.',
-  },
-  {
-    name: 'Skyline Relay', chapter: 3, color: 0x8c9dff, difficulty: 'Normal', music: 1,
-    subtitle: 'A rooftop route with room to recover.', par: 25,
-    note: 'Jump to the next roof before the saw returns. Use an upward dash if a jump falls short.',
-    dialogue: '', goal: 'Link the rooftop terraces.', width: 2900,
-    platforms: [floor(0, 450), floor(1100, 440), floor(2460, 440), ledge(600, 470, 180), ledge(870, 380, 180), ledge(1290, 440, 170), ledge(1740, 380, 190), ledge(2060, 470, 170)],
-    edits: [stroke('relay-entry', 470, 550, 110), stroke('relay-step', 1560, 490, 160), rail('relay-lift', 'arrow', 1950, 540, 130, 0, -130), stroke('relay-exit', 2260, 540, 160)],
-    hazards: [teeth(1230, 80), teeth(2520, 100)],
-    sweepers: [saw(1020, 300, 0, 130, 2500, 24), saw(1650, 290, 0, 120, 2300, 24, .2), saw(2140, 360, 130, 0, 2200, 24, .4)],
-    fragments: [{ x: 950, y: 325 }, { x: 1830, y: 325 }, { x: 2140, y: 415 }],
-    checkpoint: { x: 1460, y: 570 }, exit: { x: 2790, y: 540 },
-    secret: 'SKYLINE // The roof route cuts a corner.',
-  },
-  {
-    name: 'Rose Engine', chapter: 1, color: 0xf197d2, difficulty: 'Normal', music: 2,
-    subtitle: 'Two lifts and a narrow timing window.', par: 26,
-    note: 'Launch upward, then dash onto the next platform. Loop fields give you time to line up a landing.',
-    dialogue: '', goal: 'Clear the machine rooms.', width: 3000,
-    platforms: [floor(0, 460), floor(1060, 400), floor(1920, 400), floor(2670, 330), ledge(800, 420, 180), ledge(1260, 450, 170), ledge(1630, 340, 170), ledge(2200, 450, 150)],
-    edits: [stroke('rose-entry', 470, 520, 140), rail('rose-lift-a', 'arrow', 650, 570, 130, 0, -140), rail('rose-lift-b', 'arrow', 1490, 550, 130, 0, -180), stroke('rose-span', 2370, 540, 230)],
-    hazards: [teeth(1160, 80), teeth(2040, 90), teeth(2750, 65)],
-    sweepers: [saw(970, 340, 0, 140, 2600, 23), saw(1790, 390, 0, 110, 2300, 24), saw(2500, 405, 120, 0, 2400, 23, .5)],
-    fragments: [{ x: 890, y: 365 }, { x: 1700, y: 285 }, { x: 2270, y: 395 }],
-    checkpoint: { x: 1370, y: 570 }, exit: { x: 2890, y: 540 },
-    secret: 'ENGINE BYPASS // Boost out before the lift reaches the top.',
-  },
-  {
-    name: 'Copper Canyon', chapter: 0, color: 0xe5b851, difficulty: 'Normal', music: 3,
-    subtitle: 'Small islands. Long sightlines.', par: 27,
-    note: 'Read the whole gap before jumping. Sketch a mid-air foothold and save a dash for the last island.',
-    dialogue: '', goal: 'Find the line through the canyon.', width: 3100,
-    platforms: [floor(0, 440), floor(1260, 400), floor(2640, 460), ledge(730, 480, 150), ledge(1010, 390, 150), ledge(1850, 450, 150), ledge(2180, 360, 150), ledge(2470, 480, 130)],
-    edits: [stroke('copper-entry', 480, 550, 180), rail('copper-shuttle', 'loop', 1680, 550, 150, 220), stroke('copper-last', 2310, 510, 150)],
-    hazards: [teeth(1360, 80), teeth(2790, 100)],
-    sweepers: [saw(910, 345, 0, 150, 2600, 23), saw(2050, 340, 0, 150, 2400, 24), saw(2540, 365, 70, 0, 2300, 23, .5)],
-    fragments: [{ x: 1080, y: 335 }, { x: 1920, y: 395 }, { x: 2250, y: 305 }],
-    checkpoint: { x: 1570, y: 570 }, exit: { x: 2990, y: 540 },
-    secret: 'CANYON LINE // A short sketch can save a long fall.',
-  },
+  ...remixes,
 ];
 
-/** A separate practice arena; never counted among the twenty ranked levels. */
+/** A separate practice arena; never counted among the ranked levels. */
 export const tutorialLevel: Level = {
-  name: 'Mechanics Lab', chapter: 0, color: 0x65e5c2, difficulty: 'Easy', music: 0,
+  name: 'Mechanics Lab', chapter: 0, color: 0x65e5c2, difficulty: 'Practice', music: 0,
   subtitle: 'Learn by doing. Retry without penalties.', par: 90,
   note: 'Follow the practice card. A/D move · Space jump · Shift dash · 1/2/3 tools · Mouse draw.',
   dialogue: '', goal: 'Practice movement, dash and all three ink tools.', width: 1600,
@@ -319,5 +221,5 @@ export function gestureValid(tool: Tool, points: { x: number; y: number }[]): bo
   return Math.max(...xs) - Math.min(...xs) > 25 && Math.max(...ys) - Math.min(...ys) > 25 && Math.hypot(b.x - a.x, b.y - a.y) < length * .65;
 }
 
-/** Display order is independent of saved level IDs. */
-export const levelOrder = levels.map((_, index) => index).sort((a,b) => difficulties.indexOf(levels[a].difficulty)-difficulties.indexOf(levels[b].difficulty));
+/** Originals come first in their original order; each remix follows the same sequence. */
+export const levelOrder = levels.map((_, index) => index);
