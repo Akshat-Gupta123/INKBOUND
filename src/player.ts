@@ -26,6 +26,7 @@ export class Player {
   private dashVector = new Phaser.Math.Vector2(1, 0);
   private facing = 1;
   private trailElapsed = 0;
+  private gaitClock = 0;
   private launchRemaining = 0;
 
   get dashReady() { return this.dashCooldown <= 0 && !this.isDashing; }
@@ -108,28 +109,29 @@ export class Player {
 
     const running = grounded && Math.abs(body.velocity.x) > 40;
     const speed = Math.abs(body.velocity.x);
-    this.visual.setFlipX(this.facing < 0).setPosition(this.sprite.x, this.sprite.y);
+    this.gaitClock = running ? this.gaitClock + dt * speed / RUN_SPEED : 0;
+    const pose = this.isDashing ? 'pip-dash' : !grounded ? (body.velocity.y < -40 ? 'pip-jump' : 'pip-fall')
+      : running ? `pip-run-${save.reduced ? 2 : Math.floor(this.gaitClock / 55) % 8}`
+      : !save.reduced && Math.floor(this.clock / 700) % 2 ? 'pip-idle' : 'pip';
+    this.visual.setTexture(pose).setFlipX(this.facing < 0).setPosition(this.sprite.x, this.sprite.y);
     this.visual.setScale(1, 1).setRotation(0);
     if (!save.reduced) {
       if (this.isDashing) {
-        this.visual.setScale(1.2, .78).setRotation(this.facing * .15);
-      } else if (running) {
-        const step = Math.sin(this.clock * .045);
-        this.visual.setScale(1 + step * .035, 1 - step * .035).setRotation(this.facing * .11);
+        this.visual.setScale(1.08, .92).setRotation(this.facing * .08);
       } else if (!grounded) {
-        this.visual.setScale(.96, 1.04).setRotation(this.facing * .06);
+        this.visual.setRotation(this.facing * (body.velocity.y < 0 ? -.025 : .04));
       }
-      if (drawing) this.visual.rotation += this.facing * .035;
-      if (this.landed) this.visual.setScale(1.1, .88);
+      if (drawing) this.visual.rotation += this.facing * .025;
+      if (this.landed) this.visual.setScale(1.04, .95);
     }
     if (this.landed && body.velocity.y >= 0) sound.play('land');
     this.shadow.setPosition(this.sprite.x, this.sprite.y + 29).setVisible(grounded);
     this.trailElapsed += dt;
     if (!save.reduced && (this.isDashing || speed > 450) && this.trailElapsed >= (this.isDashing ? 22 : 65)) {
       this.trailElapsed = 0;
-      const trail = this.scene.add.image(this.sprite.x, this.sprite.y, 'pip')
+      const trail = this.scene.add.image(this.sprite.x, this.sprite.y, this.visual.texture.key)
         .setDepth(8).setFlipX(this.facing < 0).setScale(this.visual.scaleX, this.visual.scaleY)
-        .setRotation(this.visual.rotation).setTint(this.isDashing ? 0xefe55b : 0x72979c)
+        .setRotation(this.visual.rotation).setTint(this.isDashing ? 0xffa384 : 0x9bc8c3)
         .setAlpha(this.isDashing ? .34 : .13);
       this.scene.tweens.add({ targets: trail, alpha: 0, duration: 140, onComplete: () => trail.destroy() });
     }
@@ -155,7 +157,7 @@ export class Player {
     body.reset(x, y);
     body.setAllowGravity(true);
     this.sprite.setMaxVelocity(RUN_SPEED, 1200).setVelocity(0, 0).setAcceleration(0, 0).setDragX(6200);
-    this.visual.setPosition(x, y).setScale(1).setRotation(0);
+    this.visual.setTexture('pip').setPosition(x, y).setScale(1).setRotation(0);
     this.shadow.setPosition(x, y + 29).setVisible(false);
     this.lastGround = -999;
     this.lastJump = -999;
@@ -166,6 +168,7 @@ export class Player {
     this.dashCooldown = 0;
     this.launchRemaining = 0;
     this.trailElapsed = 0;
+    this.gaitClock = 0;
     // Consume queued actions while retaining held movement for immediate retries.
     for (const key of [this.keys.jump, this.keys.dash, this.keys.dash2]) {
       Phaser.Input.Keyboard.JustDown(key);

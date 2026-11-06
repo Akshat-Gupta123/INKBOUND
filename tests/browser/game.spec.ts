@@ -41,45 +41,46 @@ test('saws punish contact, fast respawns refill ink, dash breaks a saw',async({p
  await page.keyboard.press('r');expect(await scene(page,'return s.liveInk.drawings.length')).toBe(0);
 });
 
-test('all twenty-four independent levels finish and save without story screens',async({page})=>{
+test('all 104 courses finish and unlock the final poem only after the last clear',async({page})=>{
+ test.setTimeout(90000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await start(page);
  // Exit integration coverage deliberately positions the player; this is not an unassisted run.
  for(let i=0;i<levels.length;i++){
   await scene(page,'s.start(arg.i);s.player.teleport(arg.x,arg.y);',{i,x:levels[i].exit.x,y:levels[i].exit.y+10});
-  await expect.poll(()=>scene(page,'return s.finished')).toBe(true);await expect(page.getByText('LEVEL COMPLETE',{exact:true})).toBeVisible();
+  await expect.poll(()=>scene(page,'return s.finished')).toBe(true);
+  if(i===levels.length-1)await expect(page.locator('.epilogue')).toBeVisible();
+  else {await expect(page.getByText('LEVEL COMPLETE',{exact:true})).toBeVisible();await expect(page.locator('.epilogue')).toHaveCount(0);}
   expect(await page.evaluate(()=>document.documentElement.style.getPropertyValue('--level-color'))).toBe('#'+levels[i].color.toString(16).padStart(6,'0'));
  }
- await page.getByRole('button',{name:'Level picker →'}).click();await expect(page.locator('.picker-screen')).toBeVisible();
+ await page.locator('#epilogue-return').click();await expect(page.locator('.picker-screen')).toBeVisible();
  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).completed.length)).toBe(levels.length);await page.reload();expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!).completed.length)).toBe(levels.length);expect(errors).toEqual([]);
 });
 
-test('opening carousel sorts all twenty-four levels in original order with distinct themes and keyboard browsing',async({page})=>{
+test('the collection supports volume and difficulty filters, search and keyboard browsing',async({page})=>{
  await page.goto('./');await expect(page.locator('#level-card')).toHaveAttribute('data-level-index','-1');await expect(page.locator('.level-button')).toHaveCount(levels.length);
- await page.keyboard.press('ArrowRight');await expect(page.locator('#level-card')).toHaveAttribute('data-level-index',String(levelOrder[0]));
- await expect(page.locator('.difficulty-badge')).toHaveText('HARD');await expect(page.locator('.run-rules')).toContainText('CHECKPOINT RETRIES');
+ await expect(page.locator('.picker-screen')).not.toContainText(/inspired by|original layout|restored in full/i);
+ await page.keyboard.press('ArrowRight');await expect(page.locator('#level-card')).toHaveAttribute('data-level-index','0');
+ await expect(page.locator('.difficulty-badge')).toHaveText('HARD');
  const color=await page.locator('#level-card').evaluate(el=>(el as HTMLElement).style.getPropertyValue('--card-color'));
  await page.getByRole('button',{name:'Next level',exact:true}).click();expect(await page.locator('#level-card').evaluate(el=>(el as HTMLElement).style.getPropertyValue('--card-color'))).not.toBe(color);
  for(const difficulty of difficulties){
-  await page.getByRole('button',{name:difficulty,exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(8);
+  await page.getByRole('button',{name:difficulty,exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(levels.filter(l=>l.difficulty===difficulty).length);
   await expect(page.locator('.difficulty-badge')).toHaveText(difficulty.toUpperCase());
-  const index=Number(await page.locator('#level-card').getAttribute('data-level-index'));expect(levels[index].difficulty).toBe(difficulty);
  }
- await page.getByRole('button',{name:'All',exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(levels.length);
- for(const pack of ['Original 12','Remixes']) {
-  await page.getByRole('button',{name:pack,exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(12);
-  await expect(page.getByRole('button',{name:pack,exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.getByRole('button',{name:'All',exact:true}).click();
+ for(const [name,from,to] of [['First Ink',0,24],['Velocity',24,44],['Undertow',44,64],['Parallax',64,84],['Afterlight',84,104]] as const){
+  await page.getByRole('button',{name,exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(to-from);
   const ids=await page.locator('.level-button').evaluateAll(elements=>elements.map(el=>Number((el as HTMLElement).dataset.levelIndex)));
-  expect(ids.every(id=>pack==='Original 12'?id<12:id>=12)).toBe(true);
-  for(const difficulty of difficulties){await page.getByRole('button',{name:difficulty,exact:true}).click();await expect(page.locator('.level-button')).toHaveCount(4);}
-  await page.getByRole('button',{name:'All',exact:true}).click();
+  expect(ids.every(id=>id>=from&&id<to)).toBe(true);
  }
- await page.locator('.level-button[data-level-index="12"]').click();await expect(page.locator('.level-lineage')).toHaveText('Inspired by '+levels[0].name);
+ await page.getByRole('button',{name:'All volumes',exact:true}).click();
+ await page.getByRole('searchbox',{name:'Search courses'}).fill('The Final Line');await expect(page.locator('.level-button')).toHaveCount(1);await expect(page.locator('#level-card')).toHaveAttribute('data-level-index','103');
+ await page.getByRole('searchbox',{name:'Search courses'}).fill('no such course');await expect(page.locator('.empty-state')).toBeVisible();await expect(page.locator('#play-level')).toHaveCount(0);
+ await page.locator('#clear-filters').click();await expect(page.locator('.level-button')).toHaveCount(levels.length);
+ await page.getByRole('button',{name:'First Ink',exact:true}).click();await page.getByRole('button',{name:'Normal',exact:true}).click();await expect(page.locator('.empty-state')).toBeVisible();
  await page.getByRole('button',{name:'Tutorial',exact:true}).click();await expect(page.locator('#level-card')).toHaveAttribute('data-level-index','-1');await expect(page.locator('.level-button')).toHaveCount(levels.length);
- await page.keyboard.press('ArrowRight');await expect(page.locator('#level-card')).toHaveAttribute('data-level-index','0');
- await expect(page.locator('.stage-number')).toContainText('ORIGINAL');
  await page.locator('.level-button[data-level-index="12"]').click();await page.locator('#play-level').click();await expect(page.locator('.hud h3')).toHaveText(levels[12].name);
  expect(await page.evaluate(()=>document.documentElement.style.getPropertyValue('--level-color'))).toBe('#'+levels[12].color.toString(16).padStart(6,'0'));
- await expect(page.locator('.hud .eyebrow')).toContainText('HARD');
 });
 
 test('Overdrive checkpoint retries preserve the timer and refill six ink charges',async({page})=>{
@@ -123,4 +124,23 @@ test('music schedules notes, pauses correctly, and independent volume settings p
  await page.keyboard.press('Escape');expect(await scene(page,'return s.audioDiagnostics.context')).toBe('paused');const step=await scene(page,'return s.audioDiagnostics.musicSteps');await page.waitForTimeout(250);expect(await scene(page,'return s.audioDiagnostics.musicSteps')).toBe(step);
  await page.getByRole('button',{name:'Settings & controls'}).click();const music=page.getByRole('slider',{name:'Music volume',exact:true});await music.focus();await music.press('Home');for(let i=0;i<4;i++)await music.press('ArrowRight');const effects=page.getByRole('slider',{name:'Sound effects volume',exact:true});await effects.focus();await effects.press('Home');for(let i=0;i<16;i++)await effects.press('ArrowRight');await page.getByRole('button',{name:'Done',exact:true}).click();await page.getByRole('button',{name:'Resume run'}).click();expect(await scene(page,'return s.audioDiagnostics.context')).toBe('game');
  await page.keyboard.press('m');expect(await scene(page,'return s.audioDiagnostics.playing')).toBe(false);await page.reload();const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('inkbound-v1')!));expect(saved.musicVolume).toBe(.2);expect(saved.sfxVolume).toBe(.8);expect(saved.muted).toBe(true);
+});
+
+
+test('the final page unlocks for the last missing course in any order and remains available',async({page})=>{
+ await start(page,103);
+ await scene(page,'s.player.teleport(s.level.exit.x,s.level.exit.y+10)');
+ await expect(page.getByText('LEVEL COMPLETE',{exact:true})).toBeVisible();await expect(page.locator('.epilogue')).toHaveCount(0);
+ await page.evaluate(()=>{
+  const saved=JSON.parse(localStorage.getItem('inkbound-v1')!);
+  saved.completed=Array.from({length:104},(_,i)=>i).filter(i=>i!==37);saved.current=37;saved.tutorialComplete=true;
+  localStorage.setItem('inkbound-v1',JSON.stringify(saved));
+ });
+ await start(page,37);
+ await scene(page,'s.player.teleport(s.level.exit.x,s.level.exit.y+10)');
+ await expect(page.locator('.epilogue')).toBeVisible();await expect(page.locator('.epilogue-count')).toHaveText('104 / 104 COURSES CLEARED');
+ await expect(page.locator('.epilogue-poem')).toContainText('The next line is yours.');
+ await page.locator('#epilogue-return').click();await page.reload();
+ await page.getByRole('button',{name:'Final page',exact:true}).click();await expect(page.locator('.epilogue')).toBeVisible();
+ await page.locator('#epilogue-return').click();await expect(page.locator('.picker-screen')).toBeVisible();
 });

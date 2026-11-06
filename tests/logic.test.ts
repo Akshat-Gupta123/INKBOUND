@@ -3,12 +3,13 @@ import { levels, originalCount, levelOrder, tutorialLevel, difficulties, availab
 import originals from './fixtures/overdrive-originals.json';
 
 describe('the original Overdrive courses and their remixes', () => {
-  it('has eight levels per difficulty, unique themes and valid finish platforms', () => {
-    expect(levels).toHaveLength(24);
-    for (const difficulty of difficulties) expect(levels.filter(l => l.difficulty === difficulty)).toHaveLength(8);
-    expect(new Set(levels.map(l => l.color)).size).toBe(24);
-    expect(new Set(levels.map(l => l.name)).size).toBe(24);
-    expect(new Set(levels.map(l => JSON.stringify(l.platforms))).size).toBe(24);
+  it('has the full difficulty range, unique themes and valid finish platforms', () => {
+    expect(levels).toHaveLength(104);
+    const counts = {Normal:16,Hard:32,Insane:32,Extreme:24};
+    for (const difficulty of difficulties) expect(levels.filter(l => l.difficulty === difficulty)).toHaveLength(counts[difficulty]);
+    expect(new Set(levels.map(l => l.color)).size).toBe(104);
+    expect(new Set(levels.map(l => l.name)).size).toBe(104);
+    expect(new Set(levels.map(l => JSON.stringify(l.platforms))).size).toBe(104);
     for (const level of levels) {
       expect(level.fragments).toHaveLength(3);
       expect(level.color).toBeGreaterThan(0);
@@ -46,11 +47,11 @@ describe('the original Overdrive courses and their remixes', () => {
       const actual = Object.fromEntries(Object.keys(geometry).map(key => [key, restored[key as keyof typeof restored]]));
       expect(JSON.parse(JSON.stringify(actual)), restored.name + ' authentic layout').toEqual(geometry);
     }
-    expect(levelOrder).toEqual(Array.from({length:24}, (_,i) => i));
+    expect(levelOrder).toEqual(Array.from({length:104}, (_,i) => i));
   });
 
   it('gives every original a distinct, closely related remix with more hazard pressure', () => {
-    const remixes = levels.slice(originalCount);
+    const remixes = levels.slice(originalCount, 24);
     expect(remixes).toHaveLength(12);
     expect(remixes.map(l => l.source)).toEqual(Array.from({length:12}, (_,i) => i));
     for(const level of remixes) {

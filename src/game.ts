@@ -8,6 +8,7 @@ import type { Point } from './inkGeometry';
 import {sound} from './audio';
 import {runRules,practiceRules} from './rules';
 import {save,persist,complete} from './save';
+import {hasClearedEveryLevel,showEpilogue} from './epilogue';
 import {ui,menu,selection,settings,modal,button,formatTime,leavePicker} from './ui';
 type Drawing={def:Edit;body:Phaser.Physics.Arcade.Image;art:Phaser.GameObjects.Graphics;label:Phaser.GameObjects.Text;active:boolean;elapsed:number;sign:number;fromX:number;fromY:number;toX:number;toY:number};
 type Saw = {def:{x:number;y:number;r:number;dx?:number;dy?:number;period:number;phase?:number};art:Phaser.GameObjects.Graphics;elapsed:number;disabled:number;x:number;y:number;frozen:boolean};
@@ -143,7 +144,11 @@ export class Book extends Phaser.Scene {
     const a=modal('READY TO RUN','All mechanics learned: movement, dash, live ink, machinery, checkpoints and resets.<br>Choose a level and set your own pace.');
     a.append(button('Choose a level →',()=>selection(n=>this.start(n),save.current),'primary'),button('Practice again',()=>this.start(-1)));return;
   }
+  const alreadyComplete=hasClearedEveryLevel(save.completed,levels.length);
   complete(this.index,this.elapsed,[...this.found]);
+  if(!alreadyComplete&&hasClearedEveryLevel(save.completed,levels.length)){
+    leavePicker();showEpilogue(ui,()=>selection(n=>this.start(n)),`${this.level.name} · ${(this.elapsed/1000).toFixed(2)}s`);return;
+  }
   const seconds=this.elapsed/1000,par=this.level.par,rank=seconds<=par&&this.runDeaths===0?'S':seconds<=par*1.4&&this.runDeaths<=2?'A':seconds<=par*2?'B':'C';
   const a=modal('LEVEL COMPLETE',`<span class="completion-seal">${rank}</span><br>${this.level.name} · ${this.level.difficulty}<br>${seconds.toFixed(2)}s / PAR ${par}s<br>${this.runDeaths} deaths · ${this.runEdits} sketches · ${this.found.size}/3 caches`);
   a.append(button('Level picker →',()=>selection(n=>this.start(n)),'primary'),button('Replay level',()=>this.start(this.index)));

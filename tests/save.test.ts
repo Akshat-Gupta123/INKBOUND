@@ -8,7 +8,7 @@ describe('safe persistent progress',()=>{
  it('recovers from malformed and partially corrupt saves',()=>{
   values.set('inkbound-v1','broken');expect(load().current).toBe(0);
   store([]);expect(load().completed).toEqual([]);
-  store({ruleset:RULESET,current:40,completed:[1,1,24,'2'],volume:9,fragments:{0:[0,1,7,'2']},times:{0:-1},progress:{2:-9,3:120}});
+  store({ruleset:RULESET,current:140,completed:[1,1,104,'2'],volume:9,fragments:{0:[0,1,7,'2']},times:{0:-1},progress:{2:-9,3:120}});
   const s=load();expect(s.current).toBe(0);expect(s.completed).toEqual([1]);expect(s.volume).toBe(1);expect(s.fragments[0]).toEqual([0,1]);expect(s.times).toEqual({});expect(s.progress).toEqual({1:100,2:0,3:100});
  });
  it('replaying preserves fragments and the best completion time',()=>{
@@ -47,7 +47,7 @@ describe('safe persistent progress',()=>{
   store({ruleset:3,completed:[4],volume:.4});
   values.set('inkbound-archive-ruleset-2','broken');expect(load().completed).toEqual([4]);
   values.set('inkbound-archive-ruleset-2',JSON.stringify({ruleset:4,completed:[0],times:{0:9000}}));expect(load().times).toEqual({});expect(load().completed).toEqual([4]);
-  values.set('inkbound-archive-ruleset-2',JSON.stringify({ruleset:2,completed:[0,'1',50],fragments:{0:[0,8,'1']},times:{0:'9000',1:-1,2:12000},progress:{3:'75',5:500}}));
+  values.set('inkbound-archive-ruleset-2',JSON.stringify({ruleset:2,completed:[0,'1',150],fragments:{0:[0,8,'1']},times:{0:'9000',1:-1,2:12000},progress:{3:'75',5:500}}));
   const s=load();expect(s.completed).toEqual([0,4]);expect(s.fragments).toEqual({0:[0]});expect(s.times).toEqual({2:12000});expect(s.progress).toEqual({0:100,4:100,5:100});expect(s.volume).toBe(.4);
  });
  it('retains legacy achievements and remains usable when archive storage is full',()=>{
@@ -56,8 +56,14 @@ describe('safe persistent progress',()=>{
   const migrated=load();write.mockRestore();
   expect(migrated.completed).toEqual([1]);expect(migrated.fragments).toEqual({1:[2]});expect(migrated.times).toEqual({});expect(migrated.muted).toBe(true);expect(migrated.tutorialComplete).toBe(true);
  });
- it('stores current course times, tutorial and independent music settings',()=>{
-  store({ruleset:RULESET,completed:[0,19,23,24],current:23,tutorialComplete:true,musicVolume:.25,sfxVolume:.8,progress:{19:87},times:{19:29000,23:31000}});
-  const s=load();expect(s.completed).toEqual([0,19,23]);expect(s.current).toBe(23);expect(s.progress[19]).toBe(100);expect(s.times[19]).toBe(29000);expect(s.times[23]).toBe(31000);expect(s.tutorialComplete).toBe(true);expect(s.musicVolume).toBe(.25);expect(s.sfxVolume).toBe(.8);
+ it('keeps the previous 24-course collection intact when eighty more courses are appended',()=>{
+  const completed=Array.from({length:24},(_,i)=>i);
+  store({ruleset:5,completed,current:23,fragments:{23:[0,1]},times:{0:15000,23:31000},musicVolume:.3,tutorialComplete:true});
+  const s=load();expect(s.completed).toEqual(completed);expect(s.current).toBe(23);expect(s.times).toEqual({0:15000,23:31000});expect(s.fragments[23]).toEqual([0,1]);expect(s.progress[24]).toBeUndefined();expect(s.tutorialComplete).toBe(true);expect(s.musicVolume).toBe(.3);
+  expect([...values.keys()]).toEqual(['inkbound-v1']);
+ });
+ it('stores expanded course times, tutorial and independent music settings',()=>{
+  store({ruleset:RULESET,completed:[0,19,23,103,104],current:103,tutorialComplete:true,musicVolume:.25,sfxVolume:.8,progress:{19:87},times:{19:29000,23:31000,103:39000}});
+  const s=load();expect(s.completed).toEqual([0,19,23,103]);expect(s.current).toBe(103);expect(s.progress[19]).toBe(100);expect(s.times[19]).toBe(29000);expect(s.times[23]).toBe(31000);expect(s.times[103]).toBe(39000);expect(s.tutorialComplete).toBe(true);expect(s.musicVolume).toBe(.25);expect(s.sfxVolume).toBe(.8);
  });
 });

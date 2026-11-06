@@ -1,0 +1,12 @@
+.epilogue{pointer-events:auto;position:absolute;inset:0;z-index:30;overflow:auto;background:#111719;color:#e9e5d9;text-align:center;isolation:isolate}
+.epilogue:before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse at 50% 30%,#49565333,transparent 60%);pointer-events:none}
+.epilogue-page{width:min(620px,100%);min-height:100%;box-sizing:border-box;margin:auto;padding:42px 28px 30px;display:flex;flex-direction:column;align-items:center;animation:final-page-in .9s ease both}
+.epilogue-overline{width:100%;display:flex;justify-content:space-between;gap:20px;font:9px ui-monospace,monospace;letter-spacing:2px;color:#a3aaa4}
+.epilogue-overline span{color:#bbaa8b}.epilogue-rule{display:flex;align-items:center;gap:16px;width:120px;color:#c5b08c;margin:30px 0 16px}.epilogue-rule i{height:1px;background:#697067;flex:1}.epilogue-rule b{font-size:14px;font-weight:400}
+.epilogue-count{font:8px ui-monospace,monospace;letter-spacing:2px;color:#aeb5aa;margin:0 0 18px}
+.epilogue h1{font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:clamp(46px,6vw,74px);letter-spacing:-2px;line-height:.99;margin:0 0 25px;outline:none}
+.epilogue h1 em{font-weight:400;color:#c9bda6}.epilogue-poem{font:16px/1.65 Georgia,'Times New Roman',serif;color:#c5c9bd}.epilogue-poem p{margin:0 0 14px}.epilogue-poem p:last-child{color:#e2e1d5}
+.epilogue-last-clear{min-height:1em;font:9px ui-monospace,monospace;letter-spacing:.5px;color:#86948c;margin:9px 0 18px}.epilogue-return{display:flex;gap:35px;align-items:center;border:1px solid #646b5e;border-radius:2px;background:transparent;color:#e0ddce;font-size:11px;padding:13px 20px;letter-spacing:.8px}.epilogue-return:hover{background:#29322b;border-color:#b8bea8}.epilogue-return span{font-size:17px}.epilogue-signature{font:italic 11px Georgia,serif;color:#728276;margin-top:25px}
+@keyframes final-page-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.reduce-motion .epilogue-page{animation:none}@media(prefers-reduced-motion:reduce){.epilogue-page{animation:none}}
+@media(max-width:480px){.epilogue-page{padding:28px 20px 24px}.epilogue-poem{font-size:14px}.epilogue-rule{margin-top:24px}.epilogue h1{margin-bottom:20px}.epilogue-overline{font-size:8px;letter-spacing:1px}}

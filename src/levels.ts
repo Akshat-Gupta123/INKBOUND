@@ -1,7 +1,11 @@
 import { remixes } from './remixes';
+import { velocityLevels } from './volumes/velocity';
+import { undertowLevels } from './volumes/undertow';
+import { parallaxLevels } from './volumes/parallax';
+import { afterlightLevels } from './volumes/afterlight';
 
 export type Tool = 'stroke' | 'arrow' | 'loop';
-export const difficulties = ['Hard', 'Insane', 'Extreme'] as const;
+export const difficulties = ['Normal', 'Hard', 'Insane', 'Extreme'] as const;
 export const originalCount = 12;
 export type Difficulty = typeof difficulties[number] | 'Practice';
 export type Rect = { x: number; y: number; w: number; h: number };
@@ -190,7 +194,23 @@ export const levels: Level[] = [
     secret: 'FINAL RECORD // No line left behind.',
   },
   ...remixes,
+  ...velocityLevels,
+  ...undertowLevels,
+  ...parallaxLevels,
+  ...afterlightLevels,
 ];
+
+// Stable per-course accents for the four new volumes. Existing course colors stay intact.
+const usedColors = new Set(levels.slice(0, 24).map(level => level.color));
+for (let i = 24; i < levels.length; i++) {
+  const index = i - 24, hue = (212 + index * 137.507764) % 360;
+  const saturation = .64 + index % 3 * .06, lightness = .62 + Math.floor(index / 3) % 3 * .035;
+  const a = saturation * Math.min(lightness, 1 - lightness);
+  const channel = (n: number) => { const k = (n + hue / 30) % 12; return Math.round(255 * (lightness - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
+  let color = (channel(0) << 16) | (channel(8) << 8) | channel(4);
+  while (usedColors.has(color)) color = (color + 1) & 0xffffff;
+  levels[i].color = color; usedColors.add(color);
+}
 
 /** A separate practice arena; never counted among the ranked levels. */
 export const tutorialLevel: Level = {
@@ -221,5 +241,5 @@ export function gestureValid(tool: Tool, points: { x: number; y: number }[]): bo
   return Math.max(...xs) - Math.min(...xs) > 25 && Math.max(...ys) - Math.min(...ys) > 25 && Math.hypot(b.x - a.x, b.y - a.y) < length * .65;
 }
 
-/** Originals come first in their original order; each remix follows the same sequence. */
+/** Stable course IDs: the existing twenty-four followed by four new volumes. */
 export const levelOrder = levels.map((_, index) => index);

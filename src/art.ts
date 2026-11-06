@@ -3,7 +3,6 @@ import { save } from './save';
 
 export const ink = 0xeeeadd;
 export const paper = 0x15191c;
-const acid = 0xd8ed62;
 const red = 0xff604d;
 
 export function makeArt(s: Phaser.Scene) {
@@ -17,25 +16,101 @@ export function makeArt(s: Phaser.Scene) {
   g.generateTexture('paper', 128, 128);
   g.clear();
 
-  // Faceted runner, cut in white ink. Keep its silhouette inside the fixed 68×64 frame.
-  g.fillStyle(red);
-  g.fillPoints([{ x: 34, y: 29 }, { x: 5, y: 23 }, { x: 10, y: 33 }, { x: 2, y: 38 }, { x: 37, y: 36 }], true);
-  g.fillStyle(ink);
-  g.fillPoints([{ x: 23, y: 4 }, { x: 46, y: 3 }, { x: 56, y: 17 }, { x: 49, y: 36 }, { x: 24, y: 34 }, { x: 16, y: 18 }], true);
-  g.lineStyle(1, 0xffffff, .35).lineBetween(24, 1, 47, 0).lineBetween(57, 16, 51, 36);
-  g.fillStyle(paper);
-  g.fillPoints([{ x: 29, y: 17 }, { x: 51, y: 14 }, { x: 49, y: 22 }, { x: 31, y: 24 }], true);
-  g.fillStyle(acid).fillRect(40, 17, 8, 2);
-  g.fillStyle(ink).fillPoints([{ x: 27, y: 34 }, { x: 46, y: 34 }, { x: 41, y: 48 }, { x: 26, y: 47 }], true);
-  g.lineStyle(6, ink).lineBetween(30, 46, 22, 59).lineBetween(39, 47, 48, 58);
-  g.lineStyle(4, ink).lineBetween(18, 60, 28, 60).lineBetween(45, 60, 54, 60);
-  g.lineStyle(4, ink).lineBetween(44, 36, 53, 40).lineBetween(28, 38, 17, 43);
-  g.lineStyle(4, acid).lineBetween(55, 39, 62, 22);
-  g.fillStyle(ink).fillTriangle(60, 23, 64, 25, 65, 17);
-  g.generateTexture('pip', 68, 64);
+  // Each drawing shares a 68×64 canvas. Animation never changes the physics frame.
+  drawCourier(g, 'idle', 0); g.generateTexture('pip', 68, 64);
+  drawCourier(g, 'idle', 1); g.generateTexture('pip-idle', 68, 64);
+  for (let frame = 0; frame < 8; frame++) {
+    drawCourier(g, 'run', frame / 8 * Math.PI * 2);
+    g.generateTexture(`pip-run-${frame}`, 68, 64);
+  }
+  for (const pose of ['jump', 'fall', 'dash'] as const) {
+    drawCourier(g, pose, 0); g.generateTexture(`pip-${pose}`, 68, 64);
+  }
   g.clear().fillStyle(ink).fillCircle(4, 4, 4);
   g.generateTexture('dot', 8, 8);
   g.destroy();
+}
+
+type CourierPose = 'idle' | 'run' | 'jump' | 'fall' | 'dash';
+type Joint = [number, number];
+
+/** A porcelain mask, a split travelling coat, and a single vermilion ribbon. */
+function drawCourier(g: Phaser.GameObjects.Graphics, pose: CourierPose, phase: number) {
+  g.clear();
+  const outline = 0x101c25, coat = 0x354952, seam = 0x94aeb4;
+  const porcelain = 0xf3eee1, shade = 0xc4c7be, ribbon = 0xf36d50;
+  const running = pose === 'run', airborne = pose === 'jump' || pose === 'fall', dash = pose === 'dash';
+  const swing = running ? Math.sin(phase) : 0;
+  const lean = dash ? 7 : running ? 3 : airborne ? 1 : 0;
+  const bob = running ? Math.abs(Math.cos(phase)) * 1.4 : 0;
+  const polygon = (points: Joint[], color: number, edge = false) => {
+    const vertices = points.map(([x,y]) => ({x,y}));
+    g.fillStyle(color).fillPoints(vertices, true);
+    if (edge) g.lineStyle(1.2, outline).strokePoints(vertices, true);
+  };
+  const limb = (points: Joint[], color: number, width: number) => {
+    const vertices = points.map(([x,y]) => ({x,y}));
+    g.lineStyle(width + 2, outline).strokePoints(vertices);
+    g.lineStyle(width, color).strokePoints(vertices);
+  };
+  const foot = ([x,y]: Joint, color: number) => {
+    polygon([[x-3,y-3],[x+3,y-3],[x+7,y],[x+6,y+2],[x-4,y+2]],color,true);
+    g.lineStyle(1,porcelain,.7).lineBetween(x-2,y+1,x+5,y+1);
+  };
+  const backHip: Joint = [31+lean*.3,42-bob], frontHip: Joint = [39+lean*.3,42-bob];
+  let backKnee: Joint = [29,50], backFoot: Joint = [27,60];
+  let frontKnee: Joint = [40,51], frontFoot: Joint = [42,60];
+  if (running) {
+    backKnee=[30-swing*8,48-bob]; backFoot=[32-swing*17,58-Math.max(0,swing)*10];
+    frontKnee=[39+swing*8,48-bob]; frontFoot=[38+swing*17,58-Math.max(0,-swing)*10];
+  } else if (pose === 'jump') {
+    backKnee=[25,47]; backFoot=[18,44]; frontKnee=[44,47]; frontFoot=[39,56];
+  } else if (pose === 'fall') {
+    backKnee=[27,48]; backFoot=[23,58]; frontKnee=[44,49]; frontFoot=[49,56];
+  } else if (dash) {
+    backKnee=[25,46]; backFoot=[13,49]; frontKnee=[35,49]; frontFoot=[24,56];
+  }
+  // Rear limbs are a darker value, keeping the stride readable at full speed.
+  limb([backHip,backKnee,backFoot],0x73868b,5); foot(backFoot,shade);
+  const shoulderY=29-bob;
+  const rearElbow: Joint = dash ? [25,34] : [25-swing*5,37-bob];
+  const rearHand: Joint = dash ? [17,31] : [21-swing*8,39-Math.abs(swing)*5-bob];
+  limb([[30+lean,shoulderY],rearElbow,rearHand],coat,4.5);
+  g.fillStyle(shade).fillCircle(rearHand[0],rearHand[1],2.6);
+  // The ribbon changes silhouette with the gait; it trails horizontally during a dash.
+  const wave=running?Math.cos(phase)*2:phase;
+  const tailY=dash?22:26+wave;
+  polygon([[34+lean,22-bob],[22,20-bob],[11,tailY-4],[3,tailY-2],[9,tailY+2],[6,tailY+6],[20,tailY+3],[34+lean,28-bob]],0xa2463a,true);
+  polygon([[34+lean,22-bob],[21,21-bob],[11,tailY-3],[4,tailY-2],[13,tailY+1],[24,24-bob],[34+lean,26-bob]],ribbon);
+  g.lineStyle(1,0xffb08a,.65).lineBetween(12,tailY-2,23,22-bob);
+  // Split coat and pale front panel make a narrow, recognisable silhouette.
+  polygon([[29+lean,24-bob],[42+lean,24-bob],[45+lean*.5,40-bob],[49,49-bob],[37,45-bob],[28,49-bob],[27+lean*.3,37-bob]],coat,true);
+  polygon([[32+lean,26-bob],[42+lean,25-bob],[41+lean*.6,37-bob],[34+lean*.3,41-bob],[31+lean*.3,35-bob]],porcelain);
+  polygon([[28+lean*.3,37-bob],[33+lean*.3,40-bob],[29,46-bob]],seam);
+  polygon([[38+lean*.3,39-bob],[43+lean*.5,37-bob],[46,46-bob]],0x6c838b);
+  g.lineStyle(1,seam,.7).lineBetween(29+lean,28-bob,28+lean*.3,38-bob);
+  g.lineStyle(2,outline).lineBetween(31+lean*.3,39-bob,43+lean*.3,37-bob);
+  g.fillStyle(ribbon).fillRect(37+lean*.3,37-bob,3,3);
+  limb([frontHip,frontKnee,frontFoot],porcelain,5.2); foot(frontFoot,porcelain);
+  // Head stays compact; the mask is a blade of warm white inside a dark hood.
+  const hx=lean, hy=-bob;
+  polygon([[27+hx,9+hy],[32+hx,4+hy],[43+hx,5+hy],[49+hx,12+hy],[48+hx,21+hy],[41+hx,27+hy],[29+hx,23+hy],[25+hx,16+hy]],coat,true);
+  polygon([[29+hx,9+hy],[34+hx,6+hy],[44+hx,8+hy],[47+hx,12+hy],[34+hx,12+hy],[30+hx,18+hy]],seam);
+  polygon([[34+hx,12+hy],[49+hx,12+hy],[48+hx,19+hy],[42+hx,24+hy],[34+hx,21+hy],[31+hx,17+hy]],porcelain,true);
+  polygon([[39+hx,21+hy],[47+hx,18+hy],[42+hx,24+hy]],shade);
+  g.lineStyle(2.5,outline).lineBetween(37+hx,15+hy,47+hx,15+hy);
+  g.lineStyle(1,0x8ee4d4).lineBetween(42+hx,15+hy,46+hx,15+hy);
+  g.lineStyle(1,porcelain,.8).lineBetween(32+hx,6+hy,40+hx,6+hy);
+  polygon([[29+hx,23+hy],[43+hx,24+hy],[42+hx,28+hy],[29+hx,27+hy]],ribbon,true);
+  // A nib-shaped instrument is held ahead of the body, visually linking runner and ink.
+  const frontElbow: Joint = dash ? [50,32] : [47+lean*.3+swing*2,34-bob];
+  const hand: Joint = dash ? [57,29] : [50+swing*3,39-bob-Math.max(0,swing)*5];
+  limb([[42+lean,29-bob],frontElbow,hand],coat,4.5);
+  g.fillStyle(porcelain).fillCircle(hand[0],hand[1],2.8);
+  const nibX=dash?64:hand[0]+7, nibY=dash?19:hand[1]-13;
+  g.lineStyle(3,outline).lineBetween(hand[0]-1,hand[1]+4,nibX,nibY);
+  g.lineStyle(1.6,0x9ce3d5).lineBetween(hand[0]-1,hand[1]+4,nibX,nibY);
+  polygon([[nibX-2,nibY+2],[nibX+2,nibY+3],[nibX+2,nibY-5]],porcelain);
 }
 
 export function hatch(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, color = ink) {
